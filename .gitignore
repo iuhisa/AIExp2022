@@ -130,3 +130,5 @@ dmypy.json
 
 .DS_Store
 flower/flowers/
+flower/dataset/test/
+flower/dataset/train/
