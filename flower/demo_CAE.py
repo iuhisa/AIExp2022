@@ -47,6 +47,6 @@ if __name__ == '__main__':
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     autoEncoder = CAE()
     autoEncoder.to(device)
-    autoEncoder.load_state_dict(torch.load(osp.join('weight', 'CAE_final.th'), map_location=device))
+    autoEncoder.load_state_dict(torch.load(osp.join('CAE_final.th'), map_location=device))
     autoEncoder.eval()
     demo(autoEncoder, device)

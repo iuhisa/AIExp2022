@@ -5,6 +5,7 @@ import torch
 import torch.nn as nn
 import pandas as pd
 import matplotlib.pyplot as plt
+import datetime
 
 from model import CAE
 from utils import make_filepath_list, check_dir
@@ -39,9 +40,10 @@ def weights_init(m):
 
 autoEncoder.apply(weights_init)
 
-# ディレクトリのチェック
-check_dir('result')
-check_dir('weight')
+# 固有ディレクトリの生成とチェック
+IDENTITY = datetime.datetime.now().strftime('%m-%d_%H-%M-%S')
+check_dir('result', IDENTITY)
+check_dir('weight', IDENTITY)
 
 # 学習
 device  = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -64,7 +66,7 @@ logs = []
 
 for epoch in range(num_epochs):
     if epoch % save_interval == 0: # 10epochに一回はモデルを保存(epoch == 0のときも保存)
-        torch.save(autoEncoder.state_dict(), osp.join('weight', f'CAE_{epoch}.th'))
+        torch.save(autoEncoder.state_dict(), osp.join('weight', IDENTITY, f'CAE_{epoch}.th'))
     t_epoch_start = time.time()
     train_epoch_loss = 0
     val_epoch_loss = 0
@@ -130,7 +132,7 @@ for epoch in range(num_epochs):
     log_epoch = {'epoch': epoch+1, 'train_loss': train_epoch_loss, 'val_loss': val_epoch_loss}
     logs.append(log_epoch)
     df = pd.DataFrame(logs)
-    df.to_csv(osp.join('result', 'log.csv'))
+    df.to_csv(osp.join('result', IDENTITY, 'log.csv'))
 
     # lossをプロットして保存
     fig = plt.figure()
@@ -140,9 +142,9 @@ for epoch in range(num_epochs):
     ax.plot(x, val_losses, label='val loss')
     plt.xlabel('epoch')
     plt.legend()
-    fig.savefig(osp.join('result', 'loss_plot.pdf'))
+    fig.savefig(osp.join('result', IDENTITY, 'loss_plot.pdf'))
 
     # 変換した画像も保存
-    demo(autoEncoder=autoEncoder, device=device, out_path=osp.join('result', f'demo_{epoch+1}.png'))
+    demo(autoEncoder=autoEncoder, device=device, out_path=osp.join('result', IDENTITY, f'demo_{epoch+1}.png'))
 
-torch.save(autoEncoder.state_dict(), osp.join('weight', 'CAE_final.th'))
+torch.save(autoEncoder.state_dict(), osp.join('weight', IDENTITY, 'CAE_final.th'))
