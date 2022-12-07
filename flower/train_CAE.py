@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 
 from model import CAE
 from utils import make_filepath_list, check_dir
+from demo_CAE import demo
 from preprocessing import FlowerTransform, FlowerDataset
 
 # flower 画像のファイルパスリストを取得
@@ -62,17 +63,21 @@ val_losses = []
 logs = []
 
 for epoch in range(num_epochs):
+    if epoch % save_interval == 0: # 10epochに一回はモデルを保存(epoch == 0のときも保存)
+        torch.save(autoEncoder.state_dict(), osp.join('weight', f'CAE_{epoch}.th'))
     t_epoch_start = time.time()
     train_epoch_loss = 0
     val_epoch_loss = 0
     iteration = 0
 
-    autoEncoder.train()
+    ###
+    ### train
+    ###
     print('-------------')
     print('Epoch {}/{}'.format(epoch, num_epochs))
     print('-------------')
     print('（train）')
-
+    autoEncoder.train()
     for data in tqdm(train_dataloader):
         dst, src = data
         dst = dst.to(device)
@@ -98,13 +103,12 @@ for epoch in range(num_epochs):
     print('epoch {} || Epoch_Loss:{:.4f}'.format(epoch+1, train_epoch_loss))
     print('timer:  {:.4f} sec.'.format(t_epoch_finish - t_epoch_start))
 
-
     ###
-    ### ここから EVAL
+    ### eval
     ###
-    autoEncoder.eval()
     print('-------------')
     print('（eval）')
+    autoEncoder.eval()
     with torch.no_grad():
         for data in test_dataloader:
             dst, src = data
@@ -131,14 +135,14 @@ for epoch in range(num_epochs):
     # lossをプロットして保存
     fig = plt.figure()
     ax = fig.add_subplot(111)
-    x = [a+1 for a in range(epoch)]
+    x = [a+1 for a in range(epoch+1)]
     ax.plot(x, train_losses, label='train loss')
     ax.plot(x, val_losses, label='val loss')
     plt.xlabel('epoch')
     plt.legend()
     fig.savefig(osp.join('result', 'loss_plot.pdf'))
 
-    if (epoch + 1) % save_interval == 0: # 10epochに一回はモデルを保存
-        torch.save(autoEncoder.state_dict(), osp.join('weight', f'CAE_{epoch+1}.th'))
+    # 変換した画像も保存
+    demo(autoEncoder=autoEncoder, device=device, out_path=osp.join('result', f'demo_{epoch+1}.png'))
 
 torch.save(autoEncoder.state_dict(), osp.join('weight', 'CAE_final.th'))
