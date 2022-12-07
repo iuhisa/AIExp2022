@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-from utils import tanhexp
 
 class CAE(nn.Module):
     def __init__(self, image_size=512):
