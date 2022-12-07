@@ -42,8 +42,8 @@ autoEncoder.apply(weights_init)
 
 # 固有ディレクトリの生成とチェック
 IDENTITY = datetime.datetime.now().strftime('%m-%d_%H-%M-%S')
-check_dir('result', IDENTITY)
-check_dir('weight', IDENTITY)
+check_dir(osp.join('result', IDENTITY))
+check_dir(osp.join('weight', IDENTITY))
 
 # 学習
 device  = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
