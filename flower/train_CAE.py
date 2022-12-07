@@ -1,6 +1,7 @@
 import time
 from tqdm import tqdm
 import torch
+import torch.nn as nn
 import pandas as pd
 import matplotlib.pyplot as plt
 
@@ -10,9 +11,6 @@ from preprocessing import FlowerTransform, FlowerDataset
 
 # flower 画像のファイルパスリストを取得
 train_dst_filepath_list, train_src_filepath_list, test_dst_filepath_list, test_src_filepath_list = make_filepath_list()
-
-# test
-print(train_dst_filepath_list)
 
 # Datasetにする
 transform = FlowerTransform(mean=0.5, std=0.5)
@@ -26,14 +24,26 @@ test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_siz
 
 # Modelを作る
 autoEncoder = CAE()
+def weights_init(m):
+    classname = m.__class__.__name__
+    if classname.find('ConvTranspose2d') != -1 or classname.find('Conv2d') != -1:
+        # Conv2dとConvTranspose2dの初期化
+        nn.init.normal_(m.weight.data, 0.0, 0.02)
+        nn.init.constant_(m.bias.data, 0)
+    elif classname.find('BatchNorm') != -1:
+        # BatchNorm2dの初期化
+        nn.init.normal_(m.weight.data, 1.0, 0.02)
+        nn.init.constant_(m.bias.data, 0)
+
+autoEncoder.apply(weights_init)
 
 # 学習
 device  = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-print('using: ' + device)
+print('using: ' + str(device))
 
 lr = 0.001
-e_optim = torch.optim.Adam(autoEncoder.encoder.parameters(), lr)
-d_optim = torch.optim.Adam(autoEncoder.decoder.parameters(), lr)
+e_optim = torch.optim.Adam(list(autoEncoder.encoder.parameters()), lr)
+d_optim = torch.optim.Adam(list(autoEncoder.decoder.parameters()), lr)
 
 loss_fn = torch.nn.MSELoss(reduction='mean')
 

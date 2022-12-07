@@ -13,32 +13,41 @@ class CAE(nn.Module):
 
 class Encoder(nn.Module):
     def __init__(self):
-        self.layers = [ConvBlock(3, 16), 
-                        ConvBlock(16, 64),
-                        ConvBlock(64, 128),
-                        ConvBlock(128, 256)]
+        super(Encoder, self).__init__()
+        self.layer1 = ConvBlock(3,16)
+        self.layer2 = ConvBlock(16,64)
+        self.layer3 = ConvBlock(64,128)
+        self.layer4 = ConvBlock(128,256)
         self.maxpool = nn.MaxPool2d(kernel_size=2, stride=2)
     def forward(self, x):
-        for layer in self.layers:
-            x = layer(x)
-            x = self.maxpool(x)
+        x = self.layer1(x)
+        x = self.maxpool(x)
+        x = self.layer2(x)
+        x = self.maxpool(x)
+        x = self.layer3(x)
+        x = self.maxpool(x)
+        x = self.layer4(x)
+        x = self.maxpool(x)
         return x
 class Decoder(nn.Module):
     def __init__(self):
-        self.layers = [DeconvBlock(256, 128), 
-                        DeconvBlock(128, 64),
-                        DeconvBlock(64, 16),
-                        DeconvBlock(16, 3)]
+        super(Decoder, self).__init__()
+        self.layer1 = DeconvBlock(256, 128)
+        self.layer2 = DeconvBlock(128, 64)
+        self.layer3 = DeconvBlock(64, 16)
+        self.layer4 = DeconvBlock(16, 3)
     def forward(self, x):
-        for layer in self.layers:
-            x = layer(x)
+        x = self.layer1(x)
+        x = self.layer2(x)
+        x = self.layer3(x)
+        x = self.layer4(x)
         return x
 
 class ConvBlock(nn.Module):
     def __init__(self, in_channels, out_channels):
         super(ConvBlock, self).__init__()
-        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1, padding_mode='same'),
-        self.bn = nn.BatchNorm2d(out_channels),
+        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1)
+        self.bn = nn.BatchNorm2d(out_channels)
         self.tanhexp = TanhExp()
     def forward(self, x):
         x = self.conv(x)
@@ -49,7 +58,7 @@ class ConvBlock(nn.Module):
 class DeconvBlock(nn.Module):
     def __init__(self, in_channels, out_channels):
         super(DeconvBlock, self).__init__()
-        self.deconv = nn.ConvTranspose2d(in_channels, out_channels, kernel_size=4, stride=2, padding=1, padding_mode='same')
+        self.deconv = nn.ConvTranspose2d(in_channels, out_channels, kernel_size=4, stride=2, padding=1)
         self.bn = nn.BatchNorm2d(out_channels)
         self.tanhexp = TanhExp()
     def forward(self, x):
@@ -61,10 +70,10 @@ class DeconvBlock(nn.Module):
 class TwoConvBlock(nn.Module):
     def __init__(self, in_channels, middle_channels, out_channels):
         super().__init__()
-        self.conv1 = nn.Conv2d(in_channels, middle_channels, kernel_size = 3, padding=1, padding_mode='same')
+        self.conv1 = nn.Conv2d(in_channels, middle_channels, kernel_size = 3, padding=1)
         self.bn1 = nn.BatchNorm2d(middle_channels)
         self.tanhexp = TanhExp()
-        self.conv2 = nn.Conv2d(middle_channels, out_channels, kernel_size = 3, padding=1, padding_mode='same')
+        self.conv2 = nn.Conv2d(middle_channels, out_channels, kernel_size = 3, padding=1)
         self.bn2 = nn.BatchNorm2d(out_channels)
 
     def forward(self, x):
@@ -157,5 +166,5 @@ class UNet_2D(nn.Module):
 class TanhExp(nn.Module):
     def __init__(self):
         super(TanhExp, self).__init__()
-    def formard(x):
+    def forward(self, x):
         return x*torch.tanh(torch.exp(x))
