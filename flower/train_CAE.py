@@ -13,7 +13,7 @@ from preprocessing import FlowerTransform, FlowerDataset
 train_dst_filepath_list, train_src_filepath_list, test_dst_filepath_list, test_src_filepath_list = make_filepath_list()
 
 # Datasetにする
-transform = FlowerTransform(mean=0.5, std=0.5)
+transform = FlowerTransform(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))
 train_dataset = FlowerDataset(train_dst_filepath_list, train_src_filepath_list, transform)
 test_dataset = FlowerDataset(test_dst_filepath_list, test_src_filepath_list, transform)
 
@@ -70,13 +70,13 @@ for epoch in range(num_epochs):
 
     for data in tqdm(train_dataloader):
         dst, src = data
-        dst.to(device)
-        src.to(device)
+        dst = dst.to(device)
+        src = src.to(device)
 
         batch_len = len(dst)
 
-        result = autoEncoder(dst)
-        loss = loss_fn(src, result)
+        result = autoEncoder(src)
+        loss = loss_fn(dst, result)
 
         e_optim.zero_grad()
         d_optim.zero_grad()
@@ -84,30 +84,36 @@ for epoch in range(num_epochs):
         e_optim.step()
         d_optim.step()
 
-        train_epoch_loss += loss.item()*batch_len
+        train_epoch_loss += loss.item()*batch_len # 誤差は全部足す
         iteration += 1
     
     t_epoch_finish = time.time()
+    train_epoch_loss /= len(train_dataset) # 画像1枚あたりの誤差に変換
     print('-------------')
-    print('epoch {} || Epoch_Loss:{:.4f}'.format(epoch, train_epoch_loss/batch_size))
+    print('epoch {} || Epoch_Loss:{:.4f}'.format(epoch+1, train_epoch_loss))
     print('timer:  {:.4f} sec.'.format(t_epoch_finish - t_epoch_start))
-    
+
+
+    ###
+    ### ここから EVAL
+    ###
     autoEncoder.eval()
     print('-------------')
     print('（eval）')
     with torch.no_grad():
         for data in test_dataloader:
             dst, src = data
-            dst.to(device)
-            src.to(device)
+            dst = dst.to(device)
+            src = src.to(device)
 
             batch_len = len(dst)
 
-            result = autoEncoder(dst)
-            loss = loss_fn(src, result)
+            result = autoEncoder(src)
+            loss = loss_fn(dst, result)
             val_epoch_loss += loss.item()*batch_len
 
-    print('Loss:{:.4f}'.format(epoch, val_epoch_loss/batch_size))
+    val_epoch_loss /= len(test_dataset)
+    print('epoch {} || Epoch_Loss:{:.4f}'.format(epoch+1, val_epoch_loss))
     
     train_losses.append(train_epoch_loss)
     val_losses.append(val_epoch_loss)

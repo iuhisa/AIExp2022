@@ -1,6 +1,4 @@
-import time
 import torch
-import pandas as pd
 import matplotlib.pyplot as plt
 
 from model import CAE
@@ -15,7 +13,7 @@ autoEncoder.eval()
 
 batch_size = 8
 _, _, test_dst_filepath_list, test_src_filepath_list = make_filepath_list()
-transform = FlowerTransform(mean=0.5, std=0.5)
+transform = FlowerTransform(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))
 test_dataset = FlowerDataset(test_dst_filepath_list, test_src_filepath_list, transform)
 test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=True)
 
