@@ -1,7 +1,8 @@
 import glob
 import os.path
+import os
 
-def make_filepath_list(root = './dataset'):
+def make_filepath_list(root = 'dataset'):
     train_dirpath = os.path.join(root, 'train')
     test_dirpath = os.path.join(root, 'test')
 
@@ -12,3 +13,6 @@ def make_filepath_list(root = './dataset'):
     
     return train_dst_filepath_list, train_src_filepath_list, test_dst_filepath_list, test_src_filepath_list
 
+# ディレクトリがなければ作る。再帰的に作れる。
+def check_dir(path):
+    os.makedirs(path, exist_ok=True)

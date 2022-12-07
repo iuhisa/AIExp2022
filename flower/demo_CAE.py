@@ -1,4 +1,5 @@
 import torch
+import os.path as osp
 import matplotlib.pyplot as plt
 
 from model import CAE
@@ -8,7 +9,7 @@ from preprocessing import FlowerTransform, FlowerDataset
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 autoEncoder = CAE().to(device)
-autoEncoder.load_state_dict(torch.load('./weight/CAE_final.th'))
+autoEncoder.load_state_dict(torch.load(osp.join('weight', 'CAE_final.th')))
 autoEncoder.eval()
 
 batch_size = 8
@@ -20,7 +21,9 @@ test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_siz
 batch_iterator = iter(test_dataloader)
 data = next(batch_iterator)
 src, dst = data
-src.to(device)
+src = src.to(device)
+dst = dst.to(device)
+
 regen = autoEncoder(src)
 
 fig = plt.figure(figsize=(12, 9))

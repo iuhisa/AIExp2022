@@ -1,4 +1,5 @@
 import time
+import os.path as osp
 from tqdm import tqdm
 import torch
 import torch.nn as nn
@@ -6,7 +7,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 from model import CAE
-from utils import make_filepath_list
+from utils import make_filepath_list, check_dir
 from preprocessing import FlowerTransform, FlowerDataset
 
 # flower 画像のファイルパスリストを取得
@@ -37,6 +38,10 @@ def weights_init(m):
 
 autoEncoder.apply(weights_init)
 
+# ディレクトリのチェック
+check_dir('result')
+check_dir('weight')
+
 # 学習
 device  = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print('using: ' + str(device))
@@ -51,7 +56,7 @@ torch.backends.cudnn.benchmark = True
 autoEncoder.to(device)
 
 num_epochs = 1000
-save_interval = 10 #10epochごとに評価、保存。
+save_interval = 10 #10epochごとに保存。
 train_losses = []
 val_losses = []
 logs = []
@@ -115,22 +120,25 @@ for epoch in range(num_epochs):
     val_epoch_loss /= len(test_dataset)
     print('epoch {} || Epoch_Loss:{:.4f}'.format(epoch+1, val_epoch_loss))
     
+    # lossをlogに保存
     train_losses.append(train_epoch_loss)
     val_losses.append(val_epoch_loss)
     log_epoch = {'epoch': epoch+1, 'train_loss': train_epoch_loss, 'val_loss': val_epoch_loss}
     logs.append(log_epoch)
     df = pd.DataFrame(logs)
-    df.to_csv("./result/log.csv")
+    df.to_csv(osp.join('result', 'log.csv'))
 
-    if (epoch + 1) % save_interval == 0:
-        torch.save(autoEncoder.state_dict(), './weight/CAE_' + str(epoch + 1) + '.th')
-        fig = plt.figure()
-        ax = fig.add_subplot(111)
-        x = [a+1 for a in range(epoch)]
-        ax.plot(x, train_losses, label='train loss')
-        ax.plot(x, val_losses, label='val loss')
-        plt.xlabel('epoch')
-        plt.legend()
-        fig.savefig('./result/loss_plot.pdf')
+    # lossをプロットして保存
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    x = [a+1 for a in range(epoch)]
+    ax.plot(x, train_losses, label='train loss')
+    ax.plot(x, val_losses, label='val loss')
+    plt.xlabel('epoch')
+    plt.legend()
+    fig.savefig(osp.join('result', 'loss_plot.pdf'))
 
-torch.save(autoEncoder.state_dict(), './weight/CAE_final.th')
+    if (epoch + 1) % save_interval == 0: # 10epochに一回はモデルを保存
+        torch.save(autoEncoder.state_dict(), osp.join('weight', f'CAE_{epoch+1}.th'))
+
+torch.save(autoEncoder.state_dict(), osp.join('weight', 'CAE_final.th'))
