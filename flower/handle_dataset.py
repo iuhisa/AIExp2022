@@ -17,8 +17,10 @@ NUM_TEST = 1000 #testデータセットのサイズ
 MIN_IMAGES = 20 #1枚当たりの画像に最大何枚の写真を入れるか
 MAX_IMAGES = 30 #1枚当たりの画像に最大何枚の写真を入れるか
 
-def create_color_noise(w:int = WIDTH_BACKGROUND, h:int = HEIGHT_BACKGROUND)->np.ndarray:
+def create_color_noise(w:int = WIDTH_BACKGROUND, h:int = HEIGHT_BACKGROUND, seed_:int = None)->np.ndarray:
     #一様分布
+    if seed_:
+        np.random.seed(seed=seed_)
     response = np.random.randint(0, 255, (w, h, 3), dtype=np.uint8) 
     #ガウス分布, 平均,標準偏差
     #response = np.random.normal(0, 2, (w, h, 3))
@@ -76,7 +78,7 @@ def main(): #ヒマワリ→たんぽぽ
 
     #Trainデータセットの作成
     for i in tqdm(range(NUM_TRAIN)):
-        noise = create_color_noise()
+        noise = create_color_noise(seed_=i)
         res_sunflower = noise
         res_dandelion = noise
         max_images = random.randint(MIN_IMAGES, MAX_IMAGES)
@@ -93,7 +95,7 @@ def main(): #ヒマワリ→たんぽぽ
 
     #Testデータセットの作成
     for i in tqdm(range(NUM_TEST)):
-        noise = create_color_noise()
+        noise = create_color_noise(seed_=i)
         res_sunflower = noise
         res_dandelion = noise
         max_images = random.randint(MIN_IMAGES, MAX_IMAGES)
