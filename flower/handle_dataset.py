@@ -5,6 +5,8 @@ import random
 from PIL import Image
 import math
 from tqdm import tqdm
+import os.path as osp
+from utils import check_dir # dirの存在確認と生成
 
 WIDTH_BACKGROUND = 256
 HEIGHT_BACKGROUND = 256
@@ -51,8 +53,14 @@ def overlay_image(src, overlay, location):
     return cv2.cvtColor(np.asarray(result_image), cv2.COLOR_RGBA2BGRA)
 
 def main(): #ヒマワリ→たんぽぽ
-    urls_sunflower = glob.glob('./dataset/sunflower/*')
-    urls_dandelion = glob.glob('./dataset/dandelion/*')
+    # 出力先ディレクトリのチェック
+    check_dir(osp.join('dataset', 'train', 'src'))
+    check_dir(osp.join('dataset', 'train', 'dst'))
+    check_dir(osp.join('dataset', 'test', 'src'))
+    check_dir(osp.join('dataset', 'test', 'dst'))
+
+    urls_sunflower = glob.glob(osp.join('dataset', 'sunflower', '*'))
+    urls_dandelion = glob.glob(osp.join('dataset', 'dandelion', '*'))
     imgs_sunflower = [cv2.resize(cv2.imread(url), dsize=(WIDTH_IMAGE, HEIGHT_IMAGE)) for url in urls_sunflower]
     imgs_dandelion = [cv2.resize(cv2.imread(url), dsize=(WIDTH_IMAGE, HEIGHT_IMAGE)) for url in urls_dandelion]
     alpha = np.zeros((HEIGHT_IMAGE, WIDTH_IMAGE,1), dtype=np.uint8)
@@ -80,8 +88,8 @@ def main(): #ヒマワリ→たんぽぽ
             y = random.randint(1, HEIGHT_BACKGROUND-math.floor(HEIGHT_IMAGE*scale)-1)
             res_sunflower = overlay_image(res_sunflower, cv2.resize(img_sunflower, dsize=(math.floor(WIDTH_IMAGE*scale), math.floor(HEIGHT_IMAGE*scale))), (x,y))
             res_dandelion = overlay_image(res_dandelion, cv2.resize(img_dandelion, dsize=(math.floor(WIDTH_IMAGE*scale), math.floor(HEIGHT_IMAGE*scale))), (x,y))
-        cv2.imwrite(f'./dataset/train/src/{i}.jpg', res_sunflower)
-        cv2.imwrite(f'./dataset/train/dst/{i}.jpg', res_dandelion)
+        cv2.imwrite(osp.join('dataset', 'train', 'src', f'{i}.jpg'), res_sunflower)
+        cv2.imwrite(osp.join('dataset', 'train', 'dst', f'{i}.jpg'), res_dandelion)
 
     #Testデータセットの作成
     for i in tqdm(range(NUM_TEST)):
@@ -97,8 +105,8 @@ def main(): #ヒマワリ→たんぽぽ
             y = random.randint(1, HEIGHT_BACKGROUND-math.floor(HEIGHT_IMAGE*scale)-1)
             res_sunflower = overlay_image(res_sunflower, cv2.resize(img_sunflower, dsize=(math.floor(WIDTH_IMAGE*scale), math.floor(HEIGHT_IMAGE*scale))), (x,y))
             res_dandelion = overlay_image(res_dandelion, cv2.resize(img_dandelion, dsize=(math.floor(WIDTH_IMAGE*scale), math.floor(HEIGHT_IMAGE*scale))), (x,y))
-        cv2.imwrite(f'./dataset/test/src/{i}.jpg', res_sunflower)
-        cv2.imwrite(f'./dataset/test/dst/{i}.jpg', res_dandelion)
+        cv2.imwrite(osp.join('dataset', 'test', 'src', '{i}.jpg'), res_sunflower)
+        cv2.imwrite(osp.join('dataset', 'test', 'dst', '{i}.jpg'), res_dandelion)
 
 if __name__ == "__main__":
     main()
