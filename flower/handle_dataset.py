@@ -68,8 +68,9 @@ def main(): #ヒマワリ→たんぽぽ
 
     #Trainデータセットの作成
     for i in tqdm(range(NUM_TRAIN)):
-        res_sunflower = create_color_noise()
-        res_dandelion = create_color_noise()
+        noise = create_color_noise()
+        res_sunflower = noise
+        res_dandelion = noise
         max_images = random.randint(MIN_IMAGES, MAX_IMAGES)
         for j in range(max_images):
             img_sunflower = random.choice(imgs_sunflower)
@@ -84,8 +85,9 @@ def main(): #ヒマワリ→たんぽぽ
 
     #Testデータセットの作成
     for i in tqdm(range(NUM_TEST)):
-        res_sunflower = create_color_noise()
-        res_dandelion = create_color_noise()
+        noise = create_color_noise()
+        res_sunflower = noise
+        res_dandelion = noise
         max_images = random.randint(MIN_IMAGES, MAX_IMAGES)
         for j in range(max_images):
             img_sunflower = random.choice(imgs_sunflower)
