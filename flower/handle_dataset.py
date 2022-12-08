@@ -108,8 +108,8 @@ def main(): #ヒマワリ→たんぽぽ
             y = random.randint(1, HEIGHT_BACKGROUND-math.floor(HEIGHT_IMAGE*scale)-1)
             res_sunflower = overlay_image(res_sunflower, cv2.resize(img_sunflower, dsize=(math.floor(WIDTH_IMAGE*scale), math.floor(HEIGHT_IMAGE*scale))), (x,y))
             res_dandelion = overlay_image(res_dandelion, cv2.resize(img_dandelion, dsize=(math.floor(WIDTH_IMAGE*scale), math.floor(HEIGHT_IMAGE*scale))), (x,y))
-        cv2.imwrite(osp.join('dataset', 'test', 'src', '{i}.jpg'), res_sunflower)
-        cv2.imwrite(osp.join('dataset', 'test', 'dst', '{i}.jpg'), res_dandelion)
+        cv2.imwrite(osp.join('dataset', 'test', 'src', f'{i}.jpg'), res_sunflower)
+        cv2.imwrite(osp.join('dataset', 'test', 'dst', f'{i}.jpg'), res_dandelion)
 
 if __name__ == "__main__":
     main()
