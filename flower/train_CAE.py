@@ -135,14 +135,17 @@ for epoch in range(num_epochs):
     df.to_csv(osp.join('result', IDENTITY, 'log.csv'))
 
     # lossをプロットして保存
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
+    # fig, ax = plt.subplots()
+    fig = plt.figure(num=1, clear=True)
+    ax = fig.subplots()
     x = [a+1 for a in range(epoch+1)]
     ax.plot(x, train_losses, label='train loss')
     ax.plot(x, val_losses, label='val loss')
-    plt.xlabel('epoch')
-    plt.legend()
+    ax.xlabel('epoch')
+    ax.legend()
     fig.savefig(osp.join('result', IDENTITY, 'loss_plot.pdf'))
+    # fig.clear()
+    # plt.close(fig)
 
     # 変換した画像も保存
     demo(autoEncoder=autoEncoder, device=device, out_path=osp.join('result', IDENTITY, f'demo_{epoch+1}.png'))
