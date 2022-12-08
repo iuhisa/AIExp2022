@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import glob
 from PIL import Image
-from model import CAE
+from models import CAE
 from preprocessing import FlowerTransform
 
 def demo(autoEncoder, device, out_path='demo.png'):

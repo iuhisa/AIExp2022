@@ -7,7 +7,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import datetime
 
-from model import CAE
+from models import CAE
 from utils import make_filepath_list, check_dir, get_gpu_list
 from demo_CAE import demo
 from preprocessing import FlowerTransform, FlowerDataset
