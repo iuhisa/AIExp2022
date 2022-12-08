@@ -1,0 +1,8 @@
+GPU 使用可能か
+True
+使用できるGPUの数
+1
+デフォルトGPU番号
+0
+環境変数 CUDA_VISIBLE_DEVICES
+0
