@@ -24,9 +24,11 @@ train_dst_filepath_list, train_src_filepath_list, test_dst_filepath_list, test_s
 transform = FlowerTransform(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))
 train_dataset = FlowerDataset(train_dst_filepath_list, train_src_filepath_list, transform)
 test_dataset = FlowerDataset(test_dst_filepath_list, test_src_filepath_list, transform)
+train_dataset_len = len(train_dataset)
+test_dataset_len = len(test_dataset)
 
 # Dataloaderにする
-batch_size = 128
+batch_size = 64 # 1080Tiは64が限界
 train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
@@ -105,7 +107,7 @@ for epoch in range(num_epochs):
         iteration += 1
     
     t_epoch_finish = time.time()
-    train_epoch_loss /= len(train_dataset) # 画像1枚あたりの誤差に変換
+    train_epoch_loss /= train_dataset_len # 画像1枚あたりの誤差に変換
     print('-------------')
     print('epoch {} || Epoch_Loss:{:.4f}'.format(epoch+1, train_epoch_loss))
     print('timer:  {:.4f} sec.'.format(t_epoch_finish - t_epoch_start))
@@ -128,7 +130,7 @@ for epoch in range(num_epochs):
             loss = loss_fn(dst, result)
             val_epoch_loss += loss.item()*batch_len
 
-    val_epoch_loss /= len(test_dataset)
+    val_epoch_loss /= test_dataset_len
     print('epoch {} || Epoch_Loss:{:.4f}'.format(epoch+1, val_epoch_loss))
     
     # lossをlogに保存
@@ -136,7 +138,7 @@ for epoch in range(num_epochs):
     val_losses.append(val_epoch_loss)
     log_epoch = {'epoch': epoch+1, 'train_loss': train_epoch_loss, 'val_loss': val_epoch_loss}
     logs.append(log_epoch)
-    df = pd.DataFrame(logs)
+    df = pd.DataFrame(logs, index=False)
     df.to_csv(osp.join('result', IDENTITY, 'log.csv'))
 
     # lossをプロットして保存
