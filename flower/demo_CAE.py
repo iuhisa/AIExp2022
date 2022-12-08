@@ -24,8 +24,6 @@ def demo(autoEncoder, device, out_path='demo.png'):
     
     regen_images = autoEncoder(torch.stack(src_images))
     n = len(dst_images)
-    # fig = plt.figure(figsize=(12, 9))
-    # fig, axes = plt.subplots(3, n, tight_layout=True)
     fig = plt.figure(num=1, clear=True, tight_layout=True) # memory leak 対策
     axes = fig.subplots(3, n)
     for i in range(0, n):
@@ -35,14 +33,7 @@ def demo(autoEncoder, device, out_path='demo.png'):
         s = ((s*0.5 + 0.5)*255).clip(0, 255)
         d = ((d*0.5 + 0.5)*255).clip(0, 255)
         r = ((r*0.5 + 0.5)*255).clip(0, 255)
-        # plt.subplot(3, n, i+1)
-        # plt.imshow(s.astype(np.uint8).transpose(1,2,0))
 
-        # plt.subplot(3, n, n+i+1)
-        # plt.imshow(d.astype(np.uint8).transpose(1,2,0))
-
-        # plt.subplot(3, n, n*2+i+1)
-        # plt.imshow(r.astype(np.uint8).transpose(1,2,0))
         axes[0, i].set_xticks([])
         axes[1, i].set_xticks([])
         axes[2, i].set_xticks([])
@@ -53,10 +44,7 @@ def demo(autoEncoder, device, out_path='demo.png'):
         axes[1, i].imshow(d.astype(np.uint8).transpose(1,2,0))
         axes[2, i].imshow(r.astype(np.uint8).transpose(1,2,0))
 
-    # plt.savefig(out_path)
     fig.savefig(out_path)
-    # fig.clear()
-    # plt.close(fig)
 
 if __name__ == '__main__':
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
