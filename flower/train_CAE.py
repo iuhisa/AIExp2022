@@ -138,8 +138,8 @@ for epoch in range(num_epochs):
     val_losses.append(val_epoch_loss)
     log_epoch = {'epoch': epoch+1, 'train_loss': train_epoch_loss, 'val_loss': val_epoch_loss}
     logs.append(log_epoch)
-    df = pd.DataFrame(logs, index=False)
-    df.to_csv(osp.join('result', IDENTITY, 'log.csv'))
+    df = pd.DataFrame(logs)
+    df.to_csv(osp.join('result', IDENTITY, 'log.csv'), index=False)
 
     # lossをプロットして保存
     fig = plt.figure(num=1, clear=True) # memory leak 対策
