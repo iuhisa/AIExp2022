@@ -1,6 +1,7 @@
 import glob
 import os.path
 import os
+import torch.cuda as cuda
 
 def make_filepath_list(root = 'dataset'):
     train_dirpath = os.path.join(root, 'train')
@@ -16,3 +17,10 @@ def make_filepath_list(root = 'dataset'):
 # ディレクトリがなければ作る。再帰的に作れる。
 def check_dir(path):
     os.makedirs(path, exist_ok=True)
+
+def get_gpu_list():
+    if cuda.is_available():
+        ret = list(range(cuda.current_device(), cuda.current_device() + cuda.device_count()))
+    else:
+        ret = []
+    return ret

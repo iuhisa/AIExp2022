@@ -8,9 +8,14 @@ import matplotlib.pyplot as plt
 import datetime
 
 from model import CAE
-from utils import make_filepath_list, check_dir
+from utils import make_filepath_list, check_dir, get_gpu_list
 from demo_CAE import demo
 from preprocessing import FlowerTransform, FlowerDataset
+
+# GPU or CPU
+gpu_ids = get_gpu_list()
+device = torch.device('cuda' if len(gpu_ids) > 0 else 'cpu')
+print('using: ' + str(device) + ', ' + str(gpu_ids))
 
 # flower 画像のファイルパスリストを取得
 train_dst_filepath_list, train_src_filepath_list, test_dst_filepath_list, test_src_filepath_list = make_filepath_list()
@@ -21,7 +26,7 @@ train_dataset = FlowerDataset(train_dst_filepath_list, train_src_filepath_list, 
 test_dataset = FlowerDataset(test_dst_filepath_list, test_src_filepath_list, transform)
 
 # Dataloaderにする
-batch_size = 64
+batch_size = 128
 train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
@@ -46,27 +51,27 @@ check_dir(osp.join('result', IDENTITY))
 check_dir(osp.join('weight', IDENTITY))
 
 # 学習
-device  = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-print('using: ' + str(device))
-
 lr = 0.001
 e_optim = torch.optim.Adam(list(autoEncoder.encoder.parameters()), lr)
 d_optim = torch.optim.Adam(list(autoEncoder.decoder.parameters()), lr)
-
 loss_fn = torch.nn.MSELoss(reduction='mean')
 
-torch.backends.cudnn.benchmark = True
-autoEncoder.to(device)
 
-num_epochs = 1000
-save_interval = 10 #10epochごとに保存。
+if len(gpu_ids) > 0: # GPUが使えるときは並列処理できるやつに変換
+    autoEncoder = nn.DataParallel(autoEncoder, device_ids=gpu_ids)
+autoEncoder.to(device)
+torch.backends.cudnn.benchmark = True
+
+num_epochs = 100
+save_interval = 10 # N epochごとに保存。
 train_losses = []
 val_losses = []
 logs = []
 
 for epoch in range(num_epochs):
-    if epoch % save_interval == 0: # 10epochに一回はモデルを保存(epoch == 0のときも保存)
+    if epoch % save_interval == 0: # N epochに一回モデルを保存(epoch == 0のときも保存) & 結果をplot
         torch.save(autoEncoder.state_dict(), osp.join('weight', IDENTITY, f'CAE_{epoch}.th'))
+        demo(autoEncoder=autoEncoder, device=device, out_path=osp.join('result', IDENTITY, f'demo_{epoch}.png'))
     t_epoch_start = time.time()
     train_epoch_loss = 0
     val_epoch_loss = 0
@@ -143,8 +148,5 @@ for epoch in range(num_epochs):
     ax.set_xlabel('epoch')
     ax.legend()
     fig.savefig(osp.join('result', IDENTITY, 'loss_plot.pdf'))
-
-    # 変換した画像も保存
-    demo(autoEncoder=autoEncoder, device=device, out_path=osp.join('result', IDENTITY, f'demo_{epoch+1}.png'))
 
 torch.save(autoEncoder.state_dict(), osp.join('weight', IDENTITY, 'CAE_final.th'))
