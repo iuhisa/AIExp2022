@@ -1,4 +1,0 @@
-Traceback (most recent call last):
-  File "train_CAE.py", line 45, in <module>
-    check_dir('result', IDENTITY)
-TypeError: check_dir() takes 1 positional argument but 2 were given
