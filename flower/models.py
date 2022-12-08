@@ -66,3 +66,9 @@ class DeconvBlock(nn.Module):
         x = self.bn(x)
         x = self.tanhexp(x)
         return x
+
+class TanhExp(nn.Module):
+    def __init__(self):
+        super(TanhExp, self).__init__()
+    def forward(self, x):
+        return x*torch.tanh(torch.exp(x))
