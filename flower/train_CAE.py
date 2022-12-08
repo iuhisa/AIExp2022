@@ -33,7 +33,7 @@ train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_s
 test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
 # Modelを作る
-autoEncoder = CAE()
+model = CAE()
 def weights_init(m):
     classname = m.__class__.__name__
     if classname.find('ConvTranspose2d') != -1 or classname.find('Conv2d') != -1:
@@ -45,7 +45,7 @@ def weights_init(m):
         nn.init.normal_(m.weight.data, 1.0, 0.02)
         nn.init.constant_(m.bias.data, 0)
 
-autoEncoder.apply(weights_init)
+model.apply(weights_init)
 
 # 固有ディレクトリの生成とチェック
 IDENTITY = datetime.datetime.now().strftime('%m-%d_%H-%M-%S')
@@ -54,14 +54,14 @@ check_dir(osp.join('weight', IDENTITY))
 
 # 学習
 lr = 0.001
-e_optim = torch.optim.Adam(list(autoEncoder.encoder.parameters()), lr)
-d_optim = torch.optim.Adam(list(autoEncoder.decoder.parameters()), lr)
+e_optim = torch.optim.Adam(list(model.encoder.parameters()), lr)
+d_optim = torch.optim.Adam(list(model.decoder.parameters()), lr)
 loss_fn = torch.nn.MSELoss(reduction='mean')
 
 
 if len(gpu_ids) > 0: # GPUが使えるときは並列処理できるやつに変換
-    autoEncoder = nn.DataParallel(autoEncoder, device_ids=gpu_ids)
-autoEncoder.to(device)
+    model = nn.DataParallel(model, device_ids=gpu_ids)
+model.to(device)
 torch.backends.cudnn.benchmark = True
 
 num_epochs = 100
@@ -72,8 +72,8 @@ logs = []
 
 for epoch in range(num_epochs):
     if epoch % save_interval == 0: # N epochに一回モデルを保存(epoch == 0のときも保存) & 結果をplot
-        torch.save(autoEncoder.state_dict(), osp.join('weight', IDENTITY, f'CAE_{epoch}.th'))
-        demo(autoEncoder=autoEncoder, device=device, out_path=osp.join('result', IDENTITY, f'demo_{epoch}.png'))
+        torch.save(model.state_dict(), osp.join('weight', IDENTITY, f'CAE_{epoch}.th'))
+        demo(autoEncoder=model, device=device, out_path=osp.join('result', IDENTITY, f'demo_{epoch}.png'))
     t_epoch_start = time.time()
     train_epoch_loss = 0
     val_epoch_loss = 0
@@ -86,7 +86,7 @@ for epoch in range(num_epochs):
     print('Epoch {}/{}'.format(epoch, num_epochs))
     print('-------------')
     print('（train）')
-    autoEncoder.train()
+    model.train()
     for data in tqdm(train_dataloader):
         dst, src = data
         dst = dst.to(device)
@@ -94,7 +94,7 @@ for epoch in range(num_epochs):
 
         batch_len = len(dst)
 
-        result = autoEncoder(src)
+        result = model(src)
         loss = loss_fn(dst, result)
 
         e_optim.zero_grad()
@@ -117,7 +117,7 @@ for epoch in range(num_epochs):
     ###
     print('-------------')
     print('（eval）')
-    autoEncoder.eval()
+    model.eval()
     with torch.no_grad():
         for data in test_dataloader:
             dst, src = data
@@ -126,7 +126,7 @@ for epoch in range(num_epochs):
 
             batch_len = len(dst)
 
-            result = autoEncoder(src)
+            result = model(src)
             loss = loss_fn(dst, result)
             val_epoch_loss += loss.item()*batch_len
 
@@ -151,4 +151,4 @@ for epoch in range(num_epochs):
     ax.legend()
     fig.savefig(osp.join('result', IDENTITY, 'loss_plot.pdf'))
 
-torch.save(autoEncoder.state_dict(), osp.join('weight', IDENTITY, 'CAE_final.th'))
+torch.save(model.state_dict(), osp.join('weight', IDENTITY, 'CAE_final.th'))
