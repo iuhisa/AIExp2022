@@ -129,6 +129,4 @@ dmypy.json
 .pyre/
 
 .DS_Store
-flower/flowers/
-flower/dataset/test/
-flower/dataset/train/
+datasets/
