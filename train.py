@@ -7,10 +7,9 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import datetime
 
-from models import CAE
-from utils import make_filepath_list, check_dir, get_gpu_list
-from demo_CAE import demo
-from preprocessing import FlowerTransform, FlowerDataset
+from package.model import get_model
+from package.util import make_filepath_list, check_dir, get_gpu_list, visualize
+from package.data import get_dataloader
 
 # GPU or CPU
 gpu_ids = get_gpu_list()
@@ -18,34 +17,26 @@ device = torch.device('cuda' if len(gpu_ids) > 0 else 'cpu')
 print('using: ' + str(device) + ', ' + str(gpu_ids))
 
 # flower 画像のファイルパスリストを取得
-train_dst_filepath_list, train_src_filepath_list, test_dst_filepath_list, test_src_filepath_list = make_filepath_list()
+train_dst_filepath_list, train_src_filepath_list, val_dst_filepath_list, val_src_filepath_list = make_filepath_list()
 
 # Datasetにする
-transform = FlowerTransform(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))
-train_dataset = FlowerDataset(train_dst_filepath_list, train_src_filepath_list, transform)
-test_dataset = FlowerDataset(test_dst_filepath_list, test_src_filepath_list, transform)
-train_dataset_len = len(train_dataset)
-test_dataset_len = len(test_dataset)
+# transform = FlowerTransform(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))
+# train_dataset = FlowerDataset(train_dst_filepath_list, train_src_filepath_list, transform)
+# val_dataset = FlowerDataset(val_dst_filepath_list, val_src_filepath_list, transform)
+# train_dataset_len = len(train_dataset)
+# val_dataset_len = len(val_dataset)
 
 # Dataloaderにする
 batch_size = 64 # 1080Tiは64が限界
-train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+# train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+# val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
+train_dataloader = get_dataloader('flower', batch_size, 'train')
+val_dataloader = get_dataloader('flower', batch_size, 'val')
+train_dataset_len = len(train_dataloader)
+val_dataset_len = len(val_dataloader)
 
 # Modelを作る
-model = CAE()
-def weights_init(m):
-    classname = m.__class__.__name__
-    if classname.find('ConvTranspose2d') != -1 or classname.find('Conv2d') != -1:
-        # Conv2dとConvTranspose2dの初期化
-        nn.init.normal_(m.weight.data, 0.0, 0.02)
-        nn.init.constant_(m.bias.data, 0)
-    elif classname.find('BatchNorm') != -1:
-        # BatchNorm2dの初期化
-        nn.init.normal_(m.weight.data, 1.0, 0.02)
-        nn.init.constant_(m.bias.data, 0)
-
-model.apply(weights_init)
+model = get_model('CAE', None)
 
 # 固有ディレクトリの生成とチェック
 IDENTITY = datetime.datetime.now().strftime('%m-%d_%H-%M-%S')
@@ -53,15 +44,15 @@ check_dir(osp.join('result', IDENTITY))
 check_dir(osp.join('weight', IDENTITY))
 
 # 学習
-lr = 0.001
-e_optim = torch.optim.Adam(list(model.encoder.parameters()), lr)
-d_optim = torch.optim.Adam(list(model.decoder.parameters()), lr)
-loss_fn = torch.nn.MSELoss(reduction='mean')
+# lr = 0.001
+# e_optim = torch.optim.Adam(list(model.encoder.parameters()), lr)
+# d_optim = torch.optim.Adam(list(model.decoder.parameters()), lr)
+# loss_fn = torch.nn.MSELoss(reduction='mean')
 
-
-if len(gpu_ids) > 0: # GPUが使えるときは並列処理できるやつに変換
-    model = nn.DataParallel(model, device_ids=gpu_ids)
-model.to(device)
+# 要変更
+# if len(gpu_ids) > 0: # GPUが使えるときは並列処理できるやつに変換
+#     model = nn.DataParallel(model, device_ids=gpu_ids)
+# model.to(device)
 torch.backends.cudnn.benchmark = True
 
 num_epochs = 100
@@ -72,8 +63,10 @@ logs = []
 
 for epoch in range(num_epochs):
     if epoch % save_interval == 0: # N epochに一回モデルを保存(epoch == 0のときも保存) & 結果をplot
-        torch.save(model.state_dict(), osp.join('weight', IDENTITY, f'CAE_{epoch}.th'))
-        demo(autoEncoder=model, device=device, out_path=osp.join('result', IDENTITY, f'demo_{epoch}.png'))
+        pass
+        # model.save(osp.join('weight', IDENTITY, f'CAE_{epoch}.th'))
+        # torch.save(model.state_dict(), osp.join('weight', IDENTITY, f'CAE_{epoch}.th'))
+        # visualize.save(autoEncoder=model, device=device, out_path=osp.join('result', IDENTITY, f'demo_{epoch}.png'))
     t_epoch_start = time.time()
     train_epoch_loss = 0
     val_epoch_loss = 0
@@ -94,14 +87,18 @@ for epoch in range(num_epochs):
 
         batch_len = len(dst)
 
-        result = model(src)
-        loss = loss_fn(dst, result)
+        model.set_input(src, dst)
+        model.forward()
+        model.backward()
+        model.optimize()
+        # result = model(src)
+        # loss = loss_fn(dst, result)
 
-        e_optim.zero_grad()
-        d_optim.zero_grad()
-        loss.backward()
-        e_optim.step()
-        d_optim.step()
+        # e_optim.zero_grad()
+        # d_optim.zero_grad()
+        # loss.backward()
+        # e_optim.step()
+        # d_optim.step()
 
         train_epoch_loss += loss.item()*batch_len # 誤差は全部足す
         iteration += 1
@@ -119,18 +116,21 @@ for epoch in range(num_epochs):
     print('（eval）')
     model.eval()
     with torch.no_grad():
-        for data in test_dataloader:
+        for data in val_dataloader:
             dst, src = data
             dst = dst.to(device)
             src = src.to(device)
 
             batch_len = len(dst)
 
-            result = model(src)
-            loss = loss_fn(dst, result)
+            model.set_input(src, dst)
+            model.forward()
+            loss = model.get_loss()
+            # result = model(src)
+            # loss = loss_fn(dst, result)
             val_epoch_loss += loss.item()*batch_len
 
-    val_epoch_loss /= test_dataset_len
+    val_epoch_loss /= val_dataset_len
     print('epoch {} || Epoch_Loss:{:.4f}'.format(epoch+1, val_epoch_loss))
     
     # lossをlogに保存
@@ -151,4 +151,4 @@ for epoch in range(num_epochs):
     ax.legend()
     fig.savefig(osp.join('result', IDENTITY, 'loss_plot.pdf'))
 
-torch.save(model.state_dict(), osp.join('weight', IDENTITY, 'CAE_final.th'))
+# torch.save(model.state_dict(), osp.join('weight', IDENTITY, 'CAE_final.th'))

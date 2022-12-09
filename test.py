@@ -4,8 +4,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import glob
 from PIL import Image
-from models import CAE
-from preprocessing import FlowerTransform
+
+from package.model.networks import CAE
+from package.data.transform import FlowerTransform
 
 def demo(autoEncoder, device, out_path='demo.png'):
     src_image_path_list = glob.glob(osp.join('demo_data', 'src', '*'))

@@ -1,18 +1,12 @@
+'''
+torch.utils.data.Datasetを継承したDatasetたち
+transform等が異なる
+'''
+
 from PIL import Image
-import torch.utils.data as data
-import torchvision.transforms as transforms
+from torch.utils.data import Dataset
 
-
-class FlowerTransform():
-    def __init__(self, mean, std):
-        self.data_transform = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize(mean, std)
-        ])
-    def __call__(self, img):
-        return self.data_transform(img)
-
-class FlowerDataset(data.Dataset):
+class FlowerDataset(Dataset):
     def __init__(self, dst_path_list, src_path_list, transform):
         self.dst_path_list = dst_path_list
         self.src_path_list = src_path_list

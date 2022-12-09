@@ -1,3 +1,22 @@
+'''
+1.datasetをダウンロードする
+2.datasetに含まれる画像のPathを列挙する(Pathリスト)
+3.Pathリストを train, val, test に分けて、train.txt, val.txt, test.txt などに保存する(割合は指定する)
+(4. datasetをロードするときはこのPathリストを見て、ロードする。)
+
+以下は、ドメイン分けされたunpairなデータセットの例
+pairのあるデータセットだったり、タスクによって構成が変わり得る
+
+./ ┬ datasets ┬ flower ┬ pansy ┬ images ──┬ 001.png
+                         │       │            ├ 002.png
+                         │       ├ train.txt
+                         │       ├ val.txt
+                         │       └ test.txt
+                         ├ dandelion ┬ ...
+
+'''
+
+
 import os
 
 import cv2
@@ -8,7 +27,7 @@ from PIL import Image
 import math
 from tqdm import tqdm
 import os.path as osp
-from utils import check_dir # dirの存在確認と生成
+from package.util import check_dir # dirの存在確認と生成
 
 WIDTH_BACKGROUND = 256
 HEIGHT_BACKGROUND = 256

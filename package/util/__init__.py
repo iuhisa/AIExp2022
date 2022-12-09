@@ -1,3 +1,6 @@
+'''
+雑多な関数を定義
+'''
 import glob
 import os.path
 import os

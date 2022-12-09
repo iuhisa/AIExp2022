@@ -1,5 +1,9 @@
+'''
+主にnn.Moduleを継承したネットワークを定義
+'''
 import torch
 import torch.nn as nn
+import activations
 
 class CAE(nn.Module):
     def __init__(self, image_size=512):
@@ -29,6 +33,7 @@ class Encoder(nn.Module):
         x = self.layer4(x)
         x = self.maxpool(x)
         return x
+
 class Decoder(nn.Module):
     def __init__(self):
         super(Decoder, self).__init__()
@@ -48,7 +53,7 @@ class ConvBlock(nn.Module):
         super(ConvBlock, self).__init__()
         self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1)
         self.bn = nn.BatchNorm2d(out_channels)
-        self.tanhexp = TanhExp()
+        self.tanhexp = activations.TanhExp()
     def forward(self, x):
         x = self.conv(x)
         x = self.bn(x)
@@ -60,15 +65,10 @@ class DeconvBlock(nn.Module):
         super(DeconvBlock, self).__init__()
         self.deconv = nn.ConvTranspose2d(in_channels, out_channels, kernel_size=4, stride=2, padding=1)
         self.bn = nn.BatchNorm2d(out_channels)
-        self.tanhexp = TanhExp()
+        self.tanhexp = activations.TanhExp()
     def forward(self, x):
         x = self.deconv(x)
         x = self.bn(x)
         x = self.tanhexp(x)
         return x
 
-class TanhExp(nn.Module):
-    def __init__(self):
-        super(TanhExp, self).__init__()
-    def forward(self, x):
-        return x*torch.tanh(torch.exp(x))
