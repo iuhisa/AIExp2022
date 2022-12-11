@@ -3,7 +3,6 @@ import os.path as osp
 from abc import ABC, abstractmethod
 from collections import OrderedDict
 
-
 class BaseModel(ABC):
     def __init__(self, opt):
         self.opt = opt
@@ -18,7 +17,7 @@ class BaseModel(ABC):
         torch.backends.cudnn.benchmark = True
 
     @staticmethod
-    def modify_commanline_options(parser, is_train):
+    def modify_commandline_options(parser, is_train):
         return parser
 
     @abstractmethod

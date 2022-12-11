@@ -8,7 +8,7 @@ from . import networks
 
 class CycleGANModel(BaseModel):
     @staticmethod
-    def modify_commanline_options(parser, is_train):
+    def modify_commandline_options(parser, is_train):
         parser.set_defaults(no_dropout=True)
         if is_train:
             parser.add_argument('--lambda_A', type=float, default=10.0, help='weight for cycle loss (A -> B -> A)')

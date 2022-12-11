@@ -19,13 +19,14 @@ if __name__ == '__main__':
 
     model = get_model(opt)
     model.setup(opt)
-    visualizer = visualize
+    visualizer = visualize.Visualizer(opt, model.loss_names)
 
     total_iters = 0
 
     for epoch in range(opt.epoch_count, opt.n_epochs + 1):
         epoch_start_time = time.time()
-        visualizer.reset()
+        # losses = None
+        # visualizer.reset()
 
         for i, A_data, B_data in enumerate(zip(A_dataloader, B_dataloader)):
             total_iters += opt.batch_size
@@ -33,12 +34,17 @@ if __name__ == '__main__':
             model.set_input(data)
             model.optimize()
             losses = model.get_current_losses()
+            # lossesのkeyごとに足す。
+            visualizer.store_loss(losses)
 
         if epoch % opt.save_epoch_interval == 0:
             print('saving the model at the end of epoch %d, iters %d' % (epoch, total_iters))
             model.save_networks('latest')
             model.save_networks('epoch')
+            visualizer.plot_loss()
+
         print('End of epoch %d / %d \t Time Taken: %d sec' %(epoch, opt.n_epochs, time.time() - epoch_start_time))
+        visualizer.save_loss()
 
 '''legacy
 # GPU or CPU
