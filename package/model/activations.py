@@ -5,7 +5,10 @@ import torch
 import torch.nn as nn
 
 class TanhExp(nn.Module):
-    def __init__(self):
+    '''
+        x -> x * tanh ( exp ( x ) )
+    '''
+    def __init__(self, *args):
         super(TanhExp, self).__init__()
     def forward(self, x):
         return x*torch.tanh(torch.exp(x))

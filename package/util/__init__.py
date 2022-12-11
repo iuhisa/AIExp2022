@@ -17,6 +17,8 @@ def make_filepath_list(root = 'dataset'):
     
     return train_dst_filepath_list, train_src_filepath_list, test_dst_filepath_list, test_src_filepath_list
 
+
+
 # ディレクトリがなければ作る。再帰的に作れる。
 def check_dir(path):
     os.makedirs(path, exist_ok=True)

@@ -3,13 +3,15 @@ get_model でmodelを作成
 modelは、networkをもち、networkに対してforward,backward,optimize等を統括して指示する。
 '''
 import torch.nn as nn
+import importlib
 
-from .cae_model import CAEModel
+from .cycle_gan_model import CycleGANModel
+from .base_model import BaseModel
 
 
-def get_model(model_name, config):
-    # if model_name == 'CAE':
-    model = CAEModel()
+def get_model(opt):
+    if opt.model == 'cycle_gan':
+        model = CycleGANModel()
 
     # else model_name == 'CycleGAN':
     # ...
@@ -17,11 +19,28 @@ def get_model(model_name, config):
     return model
 
 
-def init_weights(m):
-    classname = m.__class__.__name__
-    if classname.find('ConvTranspose2d') != -1 or classname.find('Conv2d') != -1:
-        nn.init.normal_(m.weight.data, 0.0, 0.02)
-        nn.init.constant_(m.bias.data, 0)
-    elif classname.find('BatchNorm') != -1:
-        nn.init.normal_(m.weight.data, 1.0, 0.02)
-        nn.init.constant_(m.bias.data, 0)
+def find_model_using_name(model_name):
+    """Import the module "models/[model_name]_model.py".
+    In the file, the class called DatasetNameModel() will
+    be instantiated. It has to be a subclass of BaseModel,
+    and it is case-insensitive.
+    """
+    model_filename = "models." + model_name + "_model"
+    modellib = importlib.import_module(model_filename)
+    model = None
+    target_model_name = model_name.replace('_', '') + 'model'
+    for name, cls in modellib.__dict__.items():
+        if name.lower() == target_model_name.lower() \
+           and issubclass(cls, BaseModel):
+            model = cls
+
+    if model is None:
+        print("In %s.py, there should be a subclass of BaseModel with class name that matches %s in lowercase." % (model_filename, target_model_name))
+        exit(0)
+
+    return model
+
+def get_option_setter(model_name):
+    """Return the static method <modify_commandline_options> of the model class."""
+    model_class = find_model_using_name(model_name)
+    return model_class.modify_commandline_options

@@ -9,8 +9,38 @@ import datetime
 
 from package.model import get_model
 from package.util import make_filepath_list, check_dir, get_gpu_list, visualize
-from package.data import get_dataloader
+from package.data import get_unpair_dataloader
+from package.options.train_options import TrainOptions
 
+if __name__ == '__main__':
+    opt = TrainOptions().parse()
+    A_dataloader, B_dataloader = get_unpair_dataloader(opt)
+    print('The number of training images = %d, %d' % (len(A_dataloader), len(B_dataloader)))
+
+    model = get_model(opt)
+    model.setup(opt)
+    visualizer = visualize
+
+    total_iters = 0
+
+    for epoch in range(opt.epoch_count, opt.n_epochs + 1):
+        epoch_start_time = time.time()
+        visualizer.reset()
+
+        for i, A_data, B_data in enumerate(zip(A_dataloader, B_dataloader)):
+            total_iters += opt.batch_size
+            data = {'A':A_data, 'B':B_data}
+            model.set_input(data)
+            model.optimize()
+            losses = model.get_current_losses()
+
+        if epoch % opt.save_epoch_interval == 0:
+            print('saving the model at the end of epoch %d, iters %d' % (epoch, total_iters))
+            model.save_networks('latest')
+            model.save_networks('epoch')
+        print('End of epoch %d / %d \t Time Taken: %d sec' %(epoch, opt.n_epochs, time.time() - epoch_start_time))
+
+'''legacy
 # GPU or CPU
 gpu_ids = get_gpu_list()
 device = torch.device('cuda' if len(gpu_ids) > 0 else 'cpu')
@@ -152,3 +182,4 @@ for epoch in range(num_epochs):
     fig.savefig(osp.join('result', IDENTITY, 'loss_plot.pdf'))
 
 # torch.save(model.state_dict(), osp.join('weight', IDENTITY, 'CAE_final.th'))
+'''
