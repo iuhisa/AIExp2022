@@ -15,3 +15,117 @@ pairのあるデータセットだったり、タスクによって構成が変�
               ├ flower_dandelion ┬ ...
 
 '''
+
+import argparse
+from glob import glob
+import os
+import os.path as osp
+from package.util import check_dir
+import requests
+import shutil
+from tqdm import tqdm
+import zipfile
+
+DATASETS = {
+    'ukiyoe': {
+        'url': 'http://efrosgans.eecs.berkeley.edu/cyclegan/datasets/ukiyoe2photo.zip',
+        'desc': 'これをダウンロードすることでphoto_ukiyoeデータセットも作成されます'} ,
+    'photo_ukiyoe': {'desc': 'ukiyoeデータセットの作成に伴って作成されます'}
+}
+
+
+def make_img_list(dataset_root_dir):
+    '''
+    dataset_root_dir e.g. 'datasets/ukiyoe'
+    '''
+    train, val, test = 8, 1, 1
+    total = train + val + test
+    # dataset_root_dirs = [f for f in glob(osp.join('datasets','*')) if osp.isdir(f)]
+    # print(dataset_root_dirs)
+    root_dir = dataset_root_dir
+    img_paths = glob(osp.join(root_dir, 'images', '*.jpg'))
+    img_num = len(img_paths)
+    i1 = int(img_num*train/total)
+    i2 = int(img_num*(train+val)/total)
+
+    train_paths = [a.split(os.sep)[-1].split('.')[0] for a in img_paths[:i1]]
+    val_paths = [a.split(os.sep)[-1].split('.')[0] for a in img_paths[i1: i2]]
+    test_paths = [a.split(os.sep)[-1].split('.')[0] for a in img_paths[i2:]]
+
+    train_list = '\n'.join(train_paths)
+    val_list = '\n'.join(val_paths)
+    test_list = '\n'.join(test_paths)
+    with open(osp.join(root_dir, 'train.txt'), 'w') as f:
+        f.write(train_list)
+    with open(osp.join(root_dir, 'test.txt'), 'w') as f:
+        f.write(test_list)
+    with open(osp.join(root_dir, 'val.txt'), 'w') as f:
+        f.write(val_list)
+
+
+def download_ukiyoe():
+    print('ukiyoeディレクトリ、photo_ukiyoeディレクトリを作成します')
+    if osp.exists('datasets/ukiyoe') or osp.exists('datasets/photo_ukiyoe'):
+        print('既にデータが存在しています。データを再ダウンロードしたい場合はukiyoeディレクトリとphoto_ukiyoeを削除してください')
+        return
+    dir_path_ukiyoe = osp.join('datasets', 'ukiyoe')
+    dir_path_photo = osp.join('datasets', 'photo_ukiyoe')
+    download_file_path = osp.join('datasets', 'ukiyoe', 'ukiyoe.zip')
+    check_dir(dir_path_ukiyoe+'/images')
+    check_dir(dir_path_photo+'/images')
+    
+    print('ukiyoeデータセットをダウンロードします')
+    file_url = DATASETS['ukiyoe']['url']
+    file_size = int(requests.head(DATASETS['ukiyoe']['url']).headers["content-length"])
+    res = requests.get(file_url, stream=True)
+    pbar = tqdm(total=file_size, unit="B", unit_scale=True)
+    with open(download_file_path, 'wb') as file:
+        for chunk in res.iter_content(chunk_size=8192):
+            file.write(chunk)
+            pbar.update(len(chunk))
+        pbar.close()
+    
+    print('ディレクトリを再構築中です')
+    zp = zipfile.ZipFile(download_file_path, 'r')
+    zp.extractall(dir_path_ukiyoe)
+    zp.close()
+    
+    for file_path in os.listdir(dir_path_ukiyoe+'/ukiyoe2photo/testA'):
+        shutil.move(dir_path_ukiyoe+f'/ukiyoe2photo/testA/{file_path}', dir_path_ukiyoe+'/images')
+    for file_path in os.listdir(dir_path_ukiyoe+'/ukiyoe2photo/trainA'):
+        shutil.move(dir_path_ukiyoe+f'/ukiyoe2photo/trainA/{file_path}', dir_path_ukiyoe+'/images')
+    for file_path in os.listdir(dir_path_ukiyoe+'/ukiyoe2photo/testB'):
+        shutil.move(dir_path_ukiyoe+f'/ukiyoe2photo/testB/{file_path}', dir_path_photo+'/images')
+    for file_path in os.listdir(dir_path_ukiyoe+'/ukiyoe2photo/trainB'):
+        shutil.move(dir_path_ukiyoe+f'/ukiyoe2photo/trainB/{file_path}', dir_path_photo+'/images')
+    
+    make_img_list('datasets/ukiyoe')
+    make_img_list('datasets/photo_ukiyoe')    
+
+    print('不要なファイル・ディレクトリを削除します')
+    shutil.rmtree(dir_path_ukiyoe+'/ukiyoe2photo')
+    os.remove(download_file_path)
+
+
+def main():
+    parser = argparse.ArgumentParser(description='データセットのダウンロード')
+    parser.add_argument('-l', '--list', help='ダウンロードできるデータセットの一覧', action='store_true')
+    parser.add_argument('-d', '--datasets', nargs='*', help='ダウンロードするデータセットを選択(空白で複数選択可能)')
+    parser.add_argument('--all', help='全てのデータセットをダウンロード', action='store_true')
+    args = parser.parse_args() 
+
+    if args.list:
+        for dataset in DATASETS:
+            print(dataset)
+
+    if args.all:
+        download_ukiyoe()
+        return
+
+    if args.datasets:
+        if 'ukiyoe' in args.datasets:
+            download_ukiyoe()
+
+
+if __name__ == "__main__":
+    main()
