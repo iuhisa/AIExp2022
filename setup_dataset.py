@@ -13,9 +13,9 @@ def make_img_list():
         i1 = int(img_num*train/total)
         i2 = int(img_num*(train+val)/total)
 
-        train_paths = [a.split(os.sep)[-1] for a in img_paths[:i1]]
-        val_paths = [a.split(os.sep)[-1] for a in img_paths[i1: i2]]
-        test_paths = [a.split(os.sep)[-1] for a in img_paths[i2:]]
+        train_paths = [a.split(os.sep)[-1].split('.')[0] for a in img_paths[:i1]]
+        val_paths = [a.split(os.sep)[-1].split('.')[0] for a in img_paths[i1: i2]]
+        test_paths = [a.split(os.sep)[-1].split('.')[0] for a in img_paths[i2:]]
 
         train_list = '\n'.join(train_paths)
         val_list = '\n'.join(val_paths)
