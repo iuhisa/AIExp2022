@@ -8,8 +8,8 @@ from torch.utils.data import Dataset
 import os.path as osp
 
 def get_filepath_list(dataset_path:str, phase:str):
-    template_path = osp.join(dataset_path, 'images' , '%s.jpg') # jpg以外も考えられる
-    txtfile_path = osp.join(dataset_path, phase + '.txt')
+    template_path = osp.join('datasets', dataset_path, 'images' , '%s.jpg') # jpg以外も考えられる
+    txtfile_path = osp.join('datasets', dataset_path, phase + '.txt')
 
     if not osp.exists(txtfile_path):
         raise NotImplementedError('dataset error')
@@ -24,7 +24,7 @@ def get_filepath_list(dataset_path:str, phase:str):
 
 class SingleDataset(Dataset):
     def __init__(self, dataset_path_list, transform):
-        super(self, SingleDataset).__init__()
+        super(SingleDataset, self).__init__()
         self.paths = dataset_path_list
         self.transform = transform
 

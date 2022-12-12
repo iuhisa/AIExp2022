@@ -23,9 +23,9 @@ class Visualizer():
             self.epoch_losses[k] += losses[k]
 
     def save_loss(self, epoch):
-        for k in self.epoch_losses.keys():
+        for k in self.total_losses.keys():
             self.total_losses[k].append(self.epoch_losses[k])
-        log_epoch = {'epoch': epoch} + self.epoch_losses
+        log_epoch = dict(**{'epoch': epoch}, **self.epoch_losses)
         self.logs.append(log_epoch)
         df = pd.DataFrame(self.logs)
         df.to_csv(osp.join(self.save_dir, 'log.csv'), index=False)
@@ -37,8 +37,8 @@ class Visualizer():
         ax = fig.subplots()
         n = len(self.logs)
         x = [i for i in range(1, n+1)]
-        for k in self.losses.keys():
-            ax.plot(x, self.losses[k], label='loss_'+k)
+        for k in self.total_losses.keys():
+            ax.plot(x, self.total_losses[k], label='loss_'+k)
         ax.set_xlabel('epoch')
         ax.legend()
         fig.savefig(osp.join(self.save_dir, 'loss_plot.pdf'))
@@ -57,7 +57,7 @@ class Visualizer():
     def save_imgs(self, real_imgs:torch.Tensor, fake_imgs:torch.Tensor, rec_imgs:torch.Tensor, epoch='', id=''):
         assert((real_imgs.dim() == fake_imgs.dim()) and (fake_imgs.dim() == rec_imgs.dim()))
 
-        fig = self.make_fig(torch.cat([real_imgs, fake_imgs, rec_imgs]))
+        fig = self.make_fig(torch.stack([real_imgs, fake_imgs, rec_imgs]))
         save_path = osp.join(self.save_dir, '{}_{}_images.jpg'.format(epoch, id))
         fig.savefig(save_path)
 
@@ -69,8 +69,10 @@ class Visualizer():
         '''
         #A to B to A
         #B to A to B
-        m = imgs.dim()
-        n = imgs[0].dim()
+        
+        m = imgs.size()[0]
+        n = imgs.size()[1]
+        assert(m > 1 or n > 1)
         fig = plt.figure(num=1, clear=True, tight_layout=True) # memory leak 対策
         axes = fig.subplots(m, n)
         for i in range(0, m):

@@ -42,7 +42,7 @@ def define_G(input_nc, output_nc, ngf, netG, norm='batch', use_dropout=False, in
     net = None
     if norm == 'batch':
         norm_layer = nn.BatchNorm2d
-    elif norm == 'isntance':
+    elif norm == 'instance':
         norm_layer = nn.InstanceNorm2d
     
     if netG == 'resnet_6blocks':
@@ -56,7 +56,7 @@ def define_D(input_nc, ndf, n_layers_D=3, norm='batch', init_type='normal', init
     net = None
     if norm == 'batch':
         norm_layer = nn.BatchNorm2d
-    elif norm == 'isntance':
+    elif norm == 'instance':
         norm_layer = nn.InstanceNorm2d
 
     net = NLayerDiscriminator(input_nc, ndf, n_layers=n_layers_D, norm_layer=norm_layer)

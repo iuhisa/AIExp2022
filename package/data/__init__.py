@@ -20,8 +20,12 @@ def get_unpair_dataloader(opt):
         batch_size : size of batch
         phase : 'train', 'val' or 'test'
     '''
-    A_paths = dataset.get_filepath_list(opt.A_dataroot, opt.phase)[:opt.max_dataset_size]
-    B_paths = dataset.get_filepath_list(opt.B_dataroot, opt.phase)[:opt.max_dataset_size]
+    if opt.max_dataset_size == float('inf'):
+        A_paths = dataset.get_filepath_list(opt.A_dataroot, opt.phase)
+        B_paths = dataset.get_filepath_list(opt.B_dataroot, opt.phase)
+    else:
+        A_paths = dataset.get_filepath_list(opt.A_dataroot, opt.phase)[:opt.max_dataset_size]
+        B_paths = dataset.get_filepath_list(opt.B_dataroot, opt.phase)[:opt.max_dataset_size]
     trans = transform.get_transform(opt)
     A_dataset = dataset.SingleDataset(A_paths, trans)
     B_dataset = dataset.SingleDataset(B_paths, trans)
