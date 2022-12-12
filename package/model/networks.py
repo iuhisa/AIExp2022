@@ -46,9 +46,9 @@ def define_G(input_nc, output_nc, ngf, netG, norm='batch', use_dropout=False, in
         norm_layer = nn.InstanceNorm2d
     
     if netG == 'resnet_6blocks':
-        net = ResnetGenerator(input_nc=input_nc, output_nc=output_nc, ngf=ngf, norm_layer=norm_layer, use_dropout=use_dropout, n_blocks=9)
-    elif netG == 'resnet_9blocks':
         net = ResnetGenerator(input_nc=input_nc, output_nc=output_nc, ngf=ngf, norm_layer=norm_layer, use_dropout=use_dropout, n_blocks=6)
+    elif netG == 'resnet_9blocks':
+        net = ResnetGenerator(input_nc=input_nc, output_nc=output_nc, ngf=ngf, norm_layer=norm_layer, use_dropout=use_dropout, n_blocks=9)
 
     return init_net(net, init_type=init_type, init_gain=init_gain, gpu_ids=gpu_ids)
 
