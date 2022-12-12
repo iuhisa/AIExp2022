@@ -17,6 +17,7 @@ class RecycleGANModel(BaseModel):
             parser.add_argument('--lambda_A', type=float, default=10.0, help='weight for cycle loss (A -> B -> A)')
             parser.add_argument('--lambda_B', type=float, default=10.0, help='weight for cycle loss (B -> A -> B)')
             parser.add_argument('--lambda_identity', type=float, default=0.5, help='use identity mapping. Setting lambda_identity other than 0 has an effect of scaling the weight of the identity mapping loss. For example, if the weight of the identity loss should be 10 times smaller than the weight of the reconstruction loss, please set lambda_identity = 0.1')
+            parser.add_argument('--adversarial_loss_p', action='store_true', help='also train the prediction model with an adversarial loss')
         return parser
     
     def __init__(self, opt):
@@ -26,6 +27,7 @@ class RecycleGANModel(BaseModel):
             self.model_names = ['G_A', 'G_B', 'D_A', 'D_B', 'P_A', 'P_B']
         else:
             self.model_names = ['G_A', 'G_B', 'P_A', 'P_B']
+        self.adversarial_loss_p = opt.adversarial_loss_p
     
         self.netG_A = networks.define_G(opt.input_nc, opt.output_nc, opt.ngf, opt.netG, opt.act, opt.norm, not opt.no_dropout, opt.init_type, opt.init_gain, self.gpu_ids)
         self.netG_B = networks.define_G(opt.output_nc, opt.input_nc, opt.ngf, opt.netG, opt.act, opt.norm, not opt.no_dropout, opt.init_type, opt.init_gain, self.gpu_ids)
@@ -130,15 +132,58 @@ class RecycleGANModel(BaseModel):
             self.loss_idt_A = 0
             self.loss_idt_B = 0
 
+        # Loss GAN  A -> B
+        self.fake_B0 = self.netG_A(self.real_A0)
         loss_G_A0 = self.criterionGAN(self.netD_A(self.fake_B0), True)
+        self.fake_B1 = self.netG_A(self.real_A1)
         loss_G_A1 = self.criterionGAN(self.netD_A(self.fake_B1), True)
-        #　ここから
+        
+        self.fake_B2 = self.netP_B(torch.cat((self.fake_B0, self.fake_B1), 1))
+        loss_G_A2 = self.criterionGAN(self.netD_A(self.fake_B2), True)
 
-        self.loss_G_B0 = self.criterionGAN(self.netD_B(self.fake_A0), True)
-        self.loss_cycle_A = self.criterionCycle(self.rec_A, self.real_A) * lambda_A
-        self.loss_cycle_B = self.criterionCycle(self.rec_B, self.real_B) * lambda_B
-        self.loss_G = self.loss_G_A + self.loss_G_B + self.loss_cycle_A + self.loss_cycle_B + self.loss_idt_A + self.loss_idt_B
-        self.loss_G.backward()
+        # Loss GAN  B -> A
+        self.fake_A0 = self.netG_B(self.real_B0)
+        loss_G_B0 = self.criterionGAN(self.netD_B(self.fake_A0), True)
+        self.fake_A1 = self.netG_B(self.real_B1)
+        loss_G_B1 = self.criterionGAN(self.netD_B(self.fake_A1), True)
+        
+        self.fake_A2 = self.netP_A(torch.cat((self.fake_A0, self.fake_A1), 1))
+        loss_G_B2 = self.criterionGAN(self.netD_B(self.fake_A2), True)
+
+        # Loss pred
+        pred_A2 = self.netP_A(torch.cat((self.real_A0, self.real_A1), 1))
+        loss_pred_A = self.criterionCycle(pred_A2, self.real_A2) * lambda_A
+        pred_B2 = self.netP_B(torch.cat((self.real_B0, self.real_B1), 1))
+        loss_pred_B = self.criterionCycle(pred_B2, self.real_B2) * lambda_B
+
+        if self.adversarial_loss_p:
+            pred_fake = self.netD_B(pred_A2)
+            loss_pred_A_adversarial = self.criterionGAN(pred_fake, True)
+            pred_fake = self.netD_A(pred_B2)
+            loss_pred_B_adversarial = self.criterionGAN(pred_fake, True)
+        else:
+            loss_pred_A_adversarial = 0
+            loss_pred_B_adversarial = 0
+
+        # Loss Cycle(Recycle)
+        self.rec_A = self.netG_B(self.fake_B2)
+        loss_cycle_A = self.criterionCycle(self.rec_A, self.real_A2) * lambda_A
+
+        self.rec_B = self.netG_A(self.fake_A2)
+        loss_cycle_B = self.criterionCycle(self.rec_B, self.real_B2) * lambda_B
+
+        loss_G = (loss_G_A0 + loss_G_A1 + loss_G_A2 + loss_G_B0 + loss_G_B1 + loss_G_B2 + loss_cycle_A + loss_cycle_B
+         + loss_pred_A + loss_pred_B + self.loss_idt_A + self.loss_idt_B + loss_pred_A_adversarial + loss_pred_B_adversarial)
+
+        loss_G.backward()
+
+        # 保存
+        self.loss_G_A = loss_G_A0 + loss_G_A1 + loss_G_A2
+        self.loss_G_B = loss_G_B0 + loss_G_B1 + loss_G_B2
+        self.loss_cycle_A = loss_cycle_A
+        self.loss_cycle_B = loss_cycle_B
+        self.loss_pred_A = loss_pred_A
+        self.loss_pred_B = loss_pred_B
 
     def optimize(self):
         self.forward()
@@ -149,7 +194,10 @@ class RecycleGANModel(BaseModel):
         self.optimizer_G.step()
 
         self.set_requires_grad([self.netD_A, self.netD_B], True)
-        self.optimizer_D.zero_grad()
+        self.optimizer_D_A.zero_grad()
         self.backward_D_A()
+        self.optimizer_D_A.step()
+
+        self.optimizer_D_B.zero_grad()
         self.backward_D_B()
-        self.optimizer_D.step()
+        self.optimizer_D_B.step()

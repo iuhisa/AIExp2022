@@ -26,9 +26,21 @@ def get_unpair_dataloader(opt):
     else:
         A_paths = dataset.get_filepath_list(opt.A_dataroot, opt.phase)[:opt.max_dataset_size]
         B_paths = dataset.get_filepath_list(opt.B_dataroot, opt.phase)[:opt.max_dataset_size]
+
     trans = transform.get_transform(opt)
-    A_dataset = dataset.SingleDataset(A_paths, trans)
-    B_dataset = dataset.SingleDataset(B_paths, trans)
+
+    if opt.A_datatype == 'isolated':
+        A_dataset = dataset.SingleDataset(A_paths, trans)
+    elif opt.A_datatype == 'sequential':
+        A_dataset = dataset.SequentialDataset(A_paths, trans, n=opt.sequential_len)
+
+    if opt.B_datatype == 'isolated':
+        B_dataset = dataset.SingleDataset(B_paths, trans)
+    elif opt.B_datatype == 'sequential':
+        B_dataset = dataset.SequentialDataset(B_paths, trans, n=opt.sequential_len)
+
+    print('A datset num: {}, B dataset num: {}'.format(len(A_dataset), len(B_dataset)))
+
     A_dataloader = DataLoader(A_dataset, opt.batch_size, shuffle=opt.isTrain, num_workers=opt.num_threads)
     B_dataloader = DataLoader(B_dataset, opt.batch_size, shuffle=opt.isTrain, num_workers=opt.num_threads)
     return A_dataloader, B_dataloader
