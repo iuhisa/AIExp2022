@@ -14,5 +14,5 @@ videos = api.get_videos()
 for data in videos:
     url_video = 'https://www.pexels.com/video/' + str(data.id) + '/download'
     r = requests.get(url_video)
-    with open(data.url.split('/')[-2]+'.mp4', 'wb') as outfile:
+    with open(data.url.split('/')[-2]+'.mp4') as outfile:
         outfile.write(r.content)
