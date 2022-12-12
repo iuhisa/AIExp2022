@@ -3,8 +3,7 @@ nn関連のfunc, class
 '''
 import torch
 import torch.nn as nn
-from torch.optim import lr_scheduler
-import activations
+from . import activations
 
 def init_weights(net, init_type='normal', init_gain=0.02):
     def init_func(m):
