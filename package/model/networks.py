@@ -169,6 +169,61 @@ class ResnetBlock(nn.Module):
         out = x + self.conv_block(x)
         return out
 
+class UnetGenerator(nn.Module):
+    def __init__(self, input_nc, output_nc, num_downs, act_layer=activations.TanhExp, ngf=64, norm_layer=nn.BatchNorm2d, use_dropout=False):
+        super(UnetGenerator, self).__init__()
+        
+        unet_block = UnetSkipConnectionBlock(ngf * 8, ngf * 8, input_nc=None, submodule=None, act_layer=act_layer, norm_layer=norm_layer, innermost=True)
+        for i in range(num_downs - 5):
+            unet_block = UnetSkipConnectionBlock(ngf * 8, ngf * 8, input_nc=None, submodule=unet_block, norm_layer=norm_layer, use_dropout=use_dropout)
+        unet_block = UnetSkipConnectionBlock(ngf * 4, ngf * 8, input_nc=None, submodule=unet_block, norm_layer=norm_layer, use_dropout=use_dropout)
+        unet_block = UnetSkipConnectionBlock(ngf * 2, ngf * 4, input_nc=None, submodule=unet_block, norm_layer=norm_layer, use_dropout=use_dropout)
+        unet_block = UnetSkipConnectionBlock(ngf, ngf * 2, input_nc=None, submodule=unet_block, norm_layer=norm_layer, use_dropout=use_dropout)
+        unet_block = UnetSkipConnectionBlock(output_nc, ngf, input_nc=input_nc, submodule=unet_block, outermost=True, norm_layer=norm_layer)
+
+        self.model = unet_block
+
+    def forward(self, input):
+        return self.model(input)
+
+class UnetSkipConnectionBlock(nn.Module):
+    def __init__(self, outer_nc, inner_nc, input_nc=None, submodule=None, outermost=False, innermost=False, act_layer=activations.TanhExp, norm_layer=nn.BatchNorm2d, use_dropout=False):
+        super(UnetSkipConnectionBlock, self).__init__()
+        self.outermost = outermost
+        use_bias = (norm_layer == nn.InstanceNorm2d)
+        if input_nc is None:
+            input_nc = outer_nc
+        downconv = nn.Conv2d(input_nc, inner_nc, kernel_size=4, stride=2, padding=1, bias=use_bias)
+        downact = act_layer(True)
+        downnorm = norm_layer(inner_nc)
+        upact = act_layer(True)
+        upnorm = norm_layer(outer_nc)
+        if outermost:
+            upconv = nn.ConvTranspose2d(inner_nc * 2, outer_nc, kernel_size=4, stride=2, padding=1)
+            down = [downconv]
+            up = [upact, upconv, nn.Tanh()]
+            model = down + [submodule] + up
+        elif innermost:
+            upconv = nn.ConvTranspose2d(inner_nc, outer_nc, kernel_size=4, stride=2, padding=1, bias=use_bias)
+            down = [downact, downconv]
+            up = [upact, upconv, upnorm]
+            model = down + up
+        else:
+            upconv = nn.ConvTranspose2d(inner_nc * 2, outer_nc, kernel_size=4, stride=2, padding=1, bias=use_bias)
+            down = [downact, downconv, downnorm]
+            if use_dropout:
+                model = down + [submodule] + up + [nn.Dropout(0.5)]
+            else:
+                model = down + [submodule] + up
+
+        self.model = nn.Sequential(*model)
+
+    def forward(self, x):
+        if self.outermost:
+            return self.model(x)
+        else:
+            return torch.cat([x, self.model(x)], 1)
+
 
 class NLayerDiscriminator(nn.Module):
     def __init__(self, input_nc, ndf=64, n_layers=3, norm_layer=nn.BatchNorm2d, act_layer=activations.TanhExp):
@@ -203,72 +258,3 @@ class NLayerDiscriminator(nn.Module):
     
     def forward(self, input):
         return self.model(input)
-
-'''
-class CAE(nn.Module):
-    def __init__(self, image_size=512):
-        super(CAE, self).__init__()
-        self.encoder = Encoder()
-        self.decoder = Decoder()
-    def forward(self, x):
-        z = self.encoder(x)
-        y = self.decoder(z)
-        return y
-
-class Encoder(nn.Module):
-    def __init__(self):
-        super(Encoder, self).__init__()
-        self.layer1 = ConvBlock(3,16)
-        self.layer2 = ConvBlock(16,64)
-        self.layer3 = ConvBlock(64,128)
-        self.layer4 = ConvBlock(128,256)
-        self.maxpool = nn.MaxPool2d(kernel_size=2, stride=2)
-    def forward(self, x):
-        x = self.layer1(x)
-        x = self.maxpool(x)
-        x = self.layer2(x)
-        x = self.maxpool(x)
-        x = self.layer3(x)
-        x = self.maxpool(x)
-        x = self.layer4(x)
-        x = self.maxpool(x)
-        return x
-
-class Decoder(nn.Module):
-    def __init__(self):
-        super(Decoder, self).__init__()
-        self.layer1 = DeconvBlock(256, 128)
-        self.layer2 = DeconvBlock(128, 64)
-        self.layer3 = DeconvBlock(64, 16)
-        self.layer4 = DeconvBlock(16, 3)
-    def forward(self, x):
-        x = self.layer1(x)
-        x = self.layer2(x)
-        x = self.layer3(x)
-        x = self.layer4(x)
-        return x
-
-class ConvBlock(nn.Module):
-    def __init__(self, in_channels, out_channels):
-        super(ConvBlock, self).__init__()
-        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1)
-        self.bn = nn.BatchNorm2d(out_channels)
-        self.tanhexp = activations.TanhExp()
-    def forward(self, x):
-        x = self.conv(x)
-        x = self.bn(x)
-        x = self.tanhexp(x)
-        return x
-
-class DeconvBlock(nn.Module):
-    def __init__(self, in_channels, out_channels):
-        super(DeconvBlock, self).__init__()
-        self.deconv = nn.ConvTranspose2d(in_channels, out_channels, kernel_size=4, stride=2, padding=1)
-        self.bn = nn.BatchNorm2d(out_channels)
-        self.tanhexp = activations.TanhExp()
-    def forward(self, x):
-        x = self.deconv(x)
-        x = self.bn(x)
-        x = self.tanhexp(x)
-        return x
-'''
