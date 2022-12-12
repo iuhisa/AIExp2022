@@ -8,11 +8,11 @@
 pairのあるデータセットだったり、タスクによって構成が変わり得る
 
 ./ ┬ datasets ┬ flower_pansy ┬ images ──┬ 001.png
-                             │          ├ 002.png
-                             ├ train.txt
-                             ├ val.txt 要る???
-                             └ test.txt
-              ├ flower_dandelion ┬ ...
+               │              │            ├ 002.png
+               │              ├ train.txt
+               │              ├ val.txt 要る???
+               │              └ test.txt
+               ├ flower_dandelion ┬ ...
 
 '''
 
