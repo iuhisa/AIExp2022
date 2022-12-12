@@ -38,28 +38,42 @@ def init_net(net, init_type='normal', init_gain=0.02, gpu_ids=[]):
     return net
 
 
-def define_G(input_nc, output_nc, ngf, netG, norm='batch', use_dropout=False, init_type='normal', init_gain=0.02, gpu_ids=[]):
+def define_G(input_nc, output_nc, ngf, netG, act='tanhexp', norm='batch', use_dropout=False, init_type='normal', init_gain=0.02, gpu_ids=[]):
+    net = None
+    if norm == 'batch':
+        norm_layer = nn.BatchNorm2d
+    elif norm == 'instance':
+        norm_layer = nn.InstanceNorm2d
+
+    if act == 'tanhexp':
+        act_layer = activations.TanhExp
+    elif act == 'leakyrelu':
+        act_layer = nn.LeakyReLU
+    
+    if netG == 'resnet_6blocks':
+        net = ResnetGenerator(input_nc=input_nc, output_nc=output_nc, ngf=ngf, act_layer=act_layer, norm_layer=norm_layer, use_dropout=use_dropout, n_blocks=6)
+    elif netG == 'resnet_9blocks':
+        net = ResnetGenerator(input_nc=input_nc, output_nc=output_nc, ngf=ngf, act_layer=act_layer, norm_layer=norm_layer, use_dropout=use_dropout, n_blocks=9)
+    elif netG == 'unet_128':
+        net = UnetGenerator(input_nc, output_nc, 7, ngf, act_layer=act_layer, norm_layer=norm_layer, use_dropout=use_dropout)
+    elif netG == 'unet_256':
+        netG = UnetGenerator(input_nc, output_nc, 8, ngf, act_layer=act_layer, norm_layer=norm_layer, use_dropout=use_dropout)
+
+    return init_net(net, init_type=init_type, init_gain=init_gain, gpu_ids=gpu_ids)
+
+def define_D(input_nc, ndf, n_layers_D=3, act='tanhexp', norm='batch', init_type='normal', init_gain=0.02, gpu_ids=[]):
     net = None
     if norm == 'batch':
         norm_layer = nn.BatchNorm2d
     elif norm == 'instance':
         norm_layer = nn.InstanceNorm2d
     
-    if netG == 'resnet_6blocks':
-        net = ResnetGenerator(input_nc=input_nc, output_nc=output_nc, ngf=ngf, norm_layer=norm_layer, use_dropout=use_dropout, n_blocks=6)
-    elif netG == 'resnet_9blocks':
-        net = ResnetGenerator(input_nc=input_nc, output_nc=output_nc, ngf=ngf, norm_layer=norm_layer, use_dropout=use_dropout, n_blocks=9)
+    if act == 'tanhexp':
+        act_layer = activations.TanhExp
+    elif act == 'leakyrelu':
+        act_layer = nn.LeakyReLU
 
-    return init_net(net, init_type=init_type, init_gain=init_gain, gpu_ids=gpu_ids)
-
-def define_D(input_nc, ndf, n_layers_D=3, norm='batch', init_type='normal', init_gain=0.02, gpu_ids=[]):
-    net = None
-    if norm == 'batch':
-        norm_layer = nn.BatchNorm2d
-    elif norm == 'instance':
-        norm_layer = nn.InstanceNorm2d
-
-    net = NLayerDiscriminator(input_nc, ndf, n_layers=n_layers_D, norm_layer=norm_layer)
+    net = NLayerDiscriminator(input_nc, ndf, n_layers=n_layers_D, act_layer=act_layer, norm_layer=norm_layer)
 
     return init_net(net, init_type=init_type, init_gain=init_gain, gpu_ids=gpu_ids)
 
@@ -105,7 +119,7 @@ class ResnetGenerator(nn.Module):
             nn.ReflectionPad2d(3),
             nn.Conv2d(input_nc, ngf, kernel_size=7, padding=0, bias=use_bias),
             norm_layer(ngf),
-            act_layer(True)
+            act_layer(0.2, True)
         ]
 
         n_downsampling = 2
@@ -114,7 +128,7 @@ class ResnetGenerator(nn.Module):
             model += [
                 nn.Conv2d(ngf * mult, ngf * mult * 2, kernel_size=3, stride=2, padding=1, bias=use_bias),
                 norm_layer(ngf * mult * 2),
-                act_layer(True)
+                act_layer(0.2, True)
             ]
     
         mult = 2 ** n_downsampling
@@ -126,7 +140,7 @@ class ResnetGenerator(nn.Module):
             model += [
                 nn.ConvTranspose2d(ngf * mult, int(ngf * mult / 2), kernel_size=3, stride=2, padding=1, output_padding=1, bias=use_bias),
                 norm_layer(int(ngf * mult / 2)),
-                act_layer(True)
+                act_layer(0.2, True)
             ]
         
         model += [
@@ -150,7 +164,7 @@ class ResnetBlock(nn.Module):
         conv_block += [
             nn.Conv2d(dim, dim, kernel_size=3, padding=p, bias=use_bias),
             norm_layer(dim),
-            act_layer(True)
+            act_layer(0.2, True)
         ]
         if use_dropout:
             conv_block += [nn.Dropout(0.5)]
@@ -194,9 +208,9 @@ class UnetSkipConnectionBlock(nn.Module):
         if input_nc is None:
             input_nc = outer_nc
         downconv = nn.Conv2d(input_nc, inner_nc, kernel_size=4, stride=2, padding=1, bias=use_bias)
-        downact = act_layer(True)
+        downact = act_layer(0.2, True)
         downnorm = norm_layer(inner_nc)
-        upact = act_layer(True)
+        upact = act_layer(0.2, True)
         upnorm = norm_layer(outer_nc)
         if outermost:
             upconv = nn.ConvTranspose2d(inner_nc * 2, outer_nc, kernel_size=4, stride=2, padding=1)
@@ -232,7 +246,7 @@ class NLayerDiscriminator(nn.Module):
         use_bias = (norm_layer == nn.InstanceNorm2d)
         model = [
             nn.Conv2d(input_nc, ndf, kernel_size=4, stride=2, padding=1),
-            act_layer(True)
+            act_layer(0.2, True)
         ]
         nf_mult = 1
         nf_mult_prev = 1
@@ -242,7 +256,7 @@ class NLayerDiscriminator(nn.Module):
             model += [
                 nn.Conv2d(ndf * nf_mult_prev, ndf * nf_mult, kernel_size=4, stride=2, padding=1, bias=use_bias),
                 norm_layer(ndf * nf_mult),
-                act_layer(True)
+                act_layer(0.2, True)
             ]
 
         nf_mult_prev = nf_mult
@@ -250,7 +264,7 @@ class NLayerDiscriminator(nn.Module):
         model += [
             nn.Conv2d(ndf * nf_mult_prev, ndf * nf_mult, kernel_size=4, stride=1, padding=1, bias=use_bias),
             norm_layer(ndf * nf_mult),
-            act_layer(True)
+            act_layer(0.2, True)
         ]
 
         model += [nn.Conv2d(ndf * nf_mult, 1, kernel_size=4, stride=1, padding=1)]
