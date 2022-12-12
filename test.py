@@ -8,6 +8,46 @@ from PIL import Image
 from package.model.networks import CAE
 from package.data.transform import FlowerTransform
 
+import time
+import os.path as osp
+from tqdm import tqdm
+import torch
+import torch.nn as nn
+import pandas as pd
+import matplotlib.pyplot as plt
+import datetime
+
+from package.model import get_model
+from package.util import visualize
+from package.data import get_unpair_dataloader
+from package.options.test_options import TestOptions
+
+if __name__ == '__main__':
+    opt = TestOptions().parse()
+    opt.batch_size = opt.save_image_num
+    opt.no_flip = True
+
+    A_dataloader, B_dataloader = get_unpair_dataloader(opt)
+    print('num of test images = %d, %d' % (len(A_dataloader), len(B_dataloader)))
+
+    model = get_model(opt)
+    model.setup(opt)
+    visualizer = visualize.Visualizer(opt, model.loss_names)
+
+    if opt.eval:
+        model.eval()
+    A_data = next(iter(A_dataloader))
+    B_data = next(iter(B_dataloader))
+    data = {'A':A_data, 'B':B_data}
+    model.set_input(data)
+    model.test()
+
+    save_n = opt.save_image_num
+    visualizer.show_imgs(model.real_A[:save_n], model.fake_B[:save_n], model.rec_A[:save_n], id='AtoB')
+    visualizer.show_imgs(model.real_B[:save_n], model.fake_A[:save_n], model.rec_B[:save_n], id='BtoA')
+
+    
+'''legacy
 def demo(autoEncoder, device, out_path='demo.png'):
     src_image_path_list = glob.glob(osp.join('demo_data', 'src', '*'))
     dst_image_path_list = glob.glob(osp.join('demo_data', 'dst', '*'))
@@ -54,3 +94,4 @@ if __name__ == '__main__':
     autoEncoder.load_state_dict(torch.load(osp.join('weight', '12-08_00-26-57', 'CAE_0.th'), map_location=device))
     autoEncoder.eval()
     demo(autoEncoder, device)
+'''

@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import datetime
 
 from package.model import get_model
-from package.util import make_filepath_list, check_dir, get_gpu_list, visualize
+from package.util import visualize
 from package.data import get_unpair_dataloader
 from package.options.train_options import TrainOptions
 
@@ -28,7 +28,7 @@ if __name__ == '__main__':
         # losses = None
         # visualizer.reset()
 
-        for i, A_data, B_data in enumerate(zip(A_dataloader, B_dataloader)):
+        for A_data, B_data in zip(A_dataloader, B_dataloader):
             total_iters += opt.batch_size
             data = {'A':A_data, 'B':B_data}
             model.set_input(data)
@@ -42,6 +42,9 @@ if __name__ == '__main__':
             model.save_networks('latest')
             model.save_networks('epoch')
             visualizer.plot_loss()
+            save_n = opt.save_image_num
+            visualizer.save_imgs(model.real_A[:save_n], model.fake_B[:save_n], model.rec_A[:save_n], epoch=epoch, id='AtoB')
+            visualizer.save_imgs(model.real_B[:save_n], model.fake_A[:save_n], model.rec_B[:save_n], epoch=epoch, id='BtoA')
 
         print('End of epoch %d / %d \t Time Taken: %d sec' %(epoch, opt.n_epochs, time.time() - epoch_start_time))
         visualizer.save_loss()
