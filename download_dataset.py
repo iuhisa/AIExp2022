@@ -16,17 +16,17 @@ pairのあるデータセットだったり、タスクによって構成が変�
 
 '''
 
-import argparse
-from glob import glob
 import os
 import os.path as osp
-from package.util import check_dir
-import requests
-import shutil
-from tqdm import tqdm
-import zipfile
 import cv2
 import random
+import shutil
+import zipfile
+import argparse
+import requests
+from tqdm import tqdm
+from glob import glob
+from package.util import check_dir
 from transform_image import transform_image
 
 DATASETS = {
@@ -47,6 +47,10 @@ NUM_FILTER = 10 #ukiyoe_video作成時に何回フィルタをかけるか
 
 random.seed(5555)
 
+# pathから拡張子を抜いてファイル名だけ取り出す
+def get_filename(path): 
+    return osp.splitext(osp.basename(path))[0]
+
 def make_img_list(dataset_root_dir):
     '''
     Make three text files 'train.txt', 'val.txt' and 'test.txt'.
@@ -61,13 +65,11 @@ def make_img_list(dataset_root_dir):
     '''
     train, val, test = 8, 1, 1
     total = train + val + test
-    # dataset_root_dirs = [f for f in glob(osp.join('datasets','*')) if osp.isdir(f)]
-    # print(dataset_root_dirs)
     root_dir = dataset_root_dir
     img_paths = glob(osp.join(root_dir, 'images', '*.jpg'))
 
     # ファイルの名前だけ取り出し -> sort -> randomに並び替え
-    img_paths = [a.split(os.sep)[-1].split('.')[0] for a in img_paths]
+    img_paths = [get_filename(a) for a in img_paths]
     img_paths.sort()
     random.shuffle(img_paths)
     #
@@ -136,10 +138,6 @@ def make_vdo_list(dataset_root_dir):
     ##
     id2names = dict() # 'hoge/fuga/{id}_{number}.jpg'に対して、 同じidのファイル名を1つの配列に格納。
 
-    
-    def get_filename(path): # pathから拡張子を抜いてファイル名だけ取り出す
-        return osp.splitext(osp.basename(path))[0]
-
     for img_path in img_paths:
         img_id = remove_underscore_and_numbers(img_path)
         if not img_id in id2names.keys(): # 初めて見たidなら、配列を定義
@@ -185,14 +183,14 @@ def make_vdo_list(dataset_root_dir):
 
 def download_berkeley_A2B(A: str, B: str):
     print(f'{A}ディレクトリ、{B}_{A}ディレクトリを作成します')
-    if osp.exists(f'datasets/{A}') or osp.exists(f'datasets/{B}_{A}'):
+    if osp.exists(osp.join('datasets', A)) or osp.exists(osp.join('datasets', f'{B}_{A}')):
         print(f'既にデータが存在しています。データを再ダウンロードしたい場合は{A}ディレクトリと{B}_{A}を削除してください')
         return
     dir_path_A = osp.join('datasets', f'{A}')
     dir_path_B = osp.join('datasets', f'{B}_{A}')
     download_file_path = osp.join('datasets', f'{A}', f'{A}.zip')
-    check_dir(dir_path_A+'/images')
-    check_dir(dir_path_B+'/images')
+    check_dir(osp.join(dir_path_A, 'images'))
+    check_dir(osp.join(dir_path_B, 'images'))
     
     print(f'{A}データセットをダウンロードします')
     file_url = DATASETS[f'{A}']['url']
@@ -210,20 +208,20 @@ def download_berkeley_A2B(A: str, B: str):
     zp.extractall(dir_path_A)
     zp.close()
     
-    for file_path in os.listdir(dir_path_A+f'/{A}2{B}/testA'):
-        shutil.move(dir_path_A+f'/{A}2{B}/testA/{file_path}', dir_path_A+f'/images/{file_path}')
-    for file_path in os.listdir(dir_path_A+f'/{A}2{B}/trainA'):
-        shutil.move(dir_path_A+f'/{A}2{B}/trainA/{file_path}', dir_path_A+f'/images/{file_path}')
-    for file_path in os.listdir(dir_path_A+f'/{A}2{B}/testB'):
-        shutil.move(dir_path_A+f'/{A}2{B}/testB/{file_path}', dir_path_B+f'/images/{file_path}')
-    for file_path in os.listdir(dir_path_A+f'/{A}2{B}/trainB'):
-        shutil.move(dir_path_A+f'/{A}2{B}/trainB/{file_path}', dir_path_B+f'/images/{file_path}')
+    for file_path in os.listdir(osp.join(dir_path_A, f'{A}2{B}', 'testA')):
+        shutil.move(osp.join(dir_path_A, f'{A}2{B}', 'testA', file_path), osp.join(dir_path_A, 'images', file_path))
+    for file_path in os.listdir(osp.join(dir_path_A, f'{A}2{B}', 'trainA')):
+        shutil.move(osp.join(dir_path_A, f'{A}2{B}', 'trainA', file_path), osp.join(dir_path_A, 'images', file_path))
+    for file_path in os.listdir(osp.join(dir_path_A, f'{A}2{B}', 'testB')):
+        shutil.move(osp.join(dir_path_A, f'{A}2{B}', 'testB', file_path), osp.join(dir_path_B, 'images', file_path))
+    for file_path in os.listdir(osp.join(dir_path_A, f'{A}2{B}', 'trainB')):
+        shutil.move(osp.join(dir_path_A, f'{A}2{B}', 'trainB', file_path), osp.join(dir_path_B, 'images', file_path))
     
-    make_img_list(f'datasets/{A}')
-    make_img_list(f'datasets/{B}_{A}')    
+    make_img_list(osp.join('datasets', A))
+    make_img_list(osp.join('datasets', f'{B}_{A}'))   
 
     print('不要なファイル・ディレクトリを削除します')
-    shutil.rmtree(dir_path_A+f'/{A}2{B}')
+    shutil.rmtree(osp.join(dir_path_A, f'{A}2{B}'))
     os.remove(download_file_path)
 
 def download_nature_video():
@@ -237,11 +235,11 @@ def download_nature_video():
     target_size = 256 # 256*256にリサイズ
 
     print('nature_videoディレクトリを作成します')
-    if osp.exists('datasets/nature_video'):
+    if osp.exists(osp.join('datasets', 'nature_video')):
         print('既にデータが存在しています。データを再ダウンロードしたい場合はnature_videoディレクトリを削除してください')
         return
     dir_path_nature_video = osp.join('datasets', 'nature_video')
-    check_dir(dir_path_nature_video+'/images')
+    check_dir(osp.join(dir_path_nature_video, 'images'))
 
     print('Pexelsからnature_videoのダウンロードを開始します')
     PEXELS_AUTHORIZATION = {"Authorization": PEXELS_API}
@@ -286,26 +284,26 @@ def download_nature_video():
                     break
             os.remove(path+'.mp4')
 
-    make_vdo_list('datasets/nature_video')
+    make_vdo_list(osp.join('datasets', 'nature_video'))
 
 
 def create_ukiyoe_video():
-    if not osp.exists('datasets/ukiyoe'):
+    if not osp.exists(osp.join('datasets', 'ukiyoe')):
         print('ukiyoeデータセットがありません。先にukiyoeデータセットをダウンロードしてください。')
         return
     print('ukiyoeデータセットを作成します')
     dir_path_ukiyoe = osp.join('datasets', 'ukiyoe')
     dir_path_ukiyoe_video = osp.join('datasets', 'ukiyoe_video')
-    check_dir(dir_path_ukiyoe_video+'/images')
+    check_dir(osp.join(dir_path_ukiyoe_video, 'images'))
 
     digit_length = len(str(NUM_FILTER))-1
-    for i, file_path in enumerate(tqdm(os.listdir(dir_path_ukiyoe+'/images'))):
-        image = cv2.imread(dir_path_ukiyoe+'/images/'+file_path)
+    for i, file_path in enumerate(tqdm(os.listdir(osp.join(dir_path_ukiyoe, 'images')))):
+        image = cv2.imread(osp.join(dir_path_ukiyoe, 'images', file_path))
         images = transform_image(image, NUM_FILTER)
         for j, image_ in enumerate(images[1:]):
-            cv2.imwrite(dir_path_ukiyoe_video+f'/images/{i}_{str(j).zfill(digit_length)}.jpg', image_)
+            cv2.imwrite(osp.join(dir_path_ukiyoe_video, 'images', f'{i}_{str(j).zfill(digit_length)}.jpg'), image_)
 
-    make_vdo_list('datasets/ukiyoe_video')
+    make_vdo_list(osp.join('datasets', 'ukiyoe_video'))
 
     return
 
