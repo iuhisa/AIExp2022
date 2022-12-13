@@ -56,10 +56,7 @@ def get_dataloader(opt, domain='A'):
         dataroot = opt.B_dataroot
         datatype = opt.B_datatype
 
-    if opt.max_dataset_size == float('inf'):
-        paths = dataset.get_filepath_list(dataroot, opt.phase)
-    else:
-        paths = dataset.get_filepath_list(dataroot, opt.phase)[:opt.max_dataset_size]
+    paths = dataset.get_filepath_list(dataroot, opt.phase, list_len_max=opt.max_dataset_size)
     
     trans = transform.get_transform(opt)
 
@@ -67,6 +64,6 @@ def get_dataloader(opt, domain='A'):
         _dataset = dataset.SingleDataset(paths, trans)
     elif datatype == 'sequential':
         _dataset = dataset.SequentialDataset(paths, trans, n=opt.sequential_len)
-
+    print('Domain: {}, Dataset num: {}'.format(domain, len(_dataset)))
     dataloader = DataLoader(_dataset, opt.batch_size, shuffle=opt.isTrain, num_workers=opt.num_threads)
     return dataloader
