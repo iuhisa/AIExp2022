@@ -1,5 +1,7 @@
-from .base_options import BaseOptions
+import torch
 
+from .base_options import BaseOptions
+from .. import util
 
 class TestOptions(BaseOptions):
     """This class includes test options.
@@ -20,3 +22,21 @@ class TestOptions(BaseOptions):
         parser.set_defaults(load_size=parser.get_default('crop_size'))
         self.isTrain = False
         return parser
+
+    def parse(self):
+        """Parse our options, create checkpoints directory suffix, and set up gpu device."""
+        opt = self.gather_options()
+        opt.isTrain = self.isTrain   # train or test
+
+        # process opt.suffix
+        if opt.suffix:
+            suffix = ('_' + opt.suffix.format(**vars(opt))) if opt.suffix != '' else ''
+            opt.name = opt.name + suffix
+
+        gpu_ids = util.get_gpu_list()
+        opt.gpu_ids = gpu_ids
+        if len(opt.gpu_ids) > 0:
+            torch.cuda.set_device(opt.gpu_ids[0])
+
+        self.opt = opt
+        return self.opt
