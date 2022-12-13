@@ -29,7 +29,7 @@ while True:
 
     h, w, _ = frame.shape
     x = min(h, w) # shorter edge
-    cropped_frame = frame[h - x//2:h + x//2, w - x//2:w + x//2, :]
+    cropped_frame = frame[h//2 - x//2:h//2 + x//2, w//2 - x//2:w//2 + x//2, :]
     resized_frame = cv2.resize(cropped_frame, (target_size, target_size))
     cv2.imwrite(osp.join(dataset_path, 'images', img_name + '.jpg'), resized_frame)
     img_names.append(img_name)
