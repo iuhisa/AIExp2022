@@ -27,16 +27,19 @@ from tqdm import tqdm
 import zipfile
 import cv2
 import random
+from transform_image import transform_image
 
 DATASETS = {
     'ukiyoe': {
         'url': 'http://efrosgans.eecs.berkeley.edu/cyclegan/datasets/ukiyoe2photo.zip',
         'desc': 'これをダウンロードすることでphoto_ukiyoeデータセットも作成されます'} ,
     'photo_ukiyoe': {'desc': 'ukiyoeデータセットの作成に伴って作成されます'},
-    'nature_video': {'desc': '素材サイトのPexelsから、natureに該当する動画を連番画像で出力します'}
+    'nature_video': {'desc': '素材サイトのPexelsから、natureに該当する動画を連番画像で出力します'},
+    'ukiyoe_video': {'desc': 'ukiyoeデータセットが必要です。インターネット接続は不要です'}
 }
 
 PEXELS_API = '563492ad6f91700001000001c85472c49d3a4c189a1ed7baa64e4ae5'
+NUM_FILTER = 10 #ukiyoe_video作成時に何回フィルタをかけるか
 
 random.seed(5555)
 
@@ -219,6 +222,28 @@ def download_nature_video():
 
     make_vdo_list('datasets/nature_video')
 
+
+def create_ukiyoe_video():
+    if not osp.exists('datasets/ukiyoe'):
+        print('ukiyoeデータセットがありません。先にukiyoeデータセットをダウンロードしてください。')
+        return
+    print('ukiyoeデータセットを作成します')
+    dir_path_ukiyoe = osp.join('datasets', 'ukiyoe')
+    dir_path_ukiyoe_video = osp.join('datasets', 'ukiyoe_video')
+    check_dir(dir_path_ukiyoe_video+'/images')
+
+    digit_length = len(str(NUM_FILTER))-1
+    for i, file_path in enumerate(tqdm(os.listdir(dir_path_ukiyoe+'/images'))):
+        image = cv2.imread(dir_path_ukiyoe+'/images/'+file_path)
+        images = transform_image(image, NUM_FILTER)
+        for j, image_ in enumerate(images[1:]):
+            cv2.imwrite(dir_path_ukiyoe_video+f'/images/{i}_{str(j).zfill(digit_length)}.jpg', image_)
+
+    make_vdo_list('datasets/ukiyoe_video')
+
+    return
+
+
 def main():
     parser = argparse.ArgumentParser(description='データセットのダウンロード')
     parser.add_argument('-l', '--list', help='ダウンロードできるデータセットの一覧', action='store_true')
@@ -233,6 +258,7 @@ def main():
     if args.all:
         download_ukiyoe()
         download_nature_video()
+        create_ukiyoe_video()
         return
 
     if args.datasets:
@@ -240,6 +266,8 @@ def main():
             download_ukiyoe()
         if 'nature_video' in args.datasets:
             download_nature_video()
+        if 'ukiyoe_video' in args.datasets:
+            create_ukiyoe_video()
 
 
 if __name__ == "__main__":
