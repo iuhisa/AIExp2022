@@ -13,6 +13,7 @@ class BaseModel(ABC):
         self.device = torch.device('cuda' if len(self.gpu_ids) > 0 else 'cpu')
         self.loss_names = []
         self.model_names = []
+        self.visual_names = []
         self.optimizers = []
         self.schedulers = []
 
@@ -59,6 +60,13 @@ class BaseModel(ABC):
                 scheduler.step()
         lr = self.optimizers[0].param_groups[0]['lr']
         print('learning rage %.7f -> %.7f' % (old_lr, lr))
+
+    def get_current_visuals(self):
+        visual_ret = OrderedDict()
+        for name in self.visual_names:
+            if isinstance(name, str):
+                visual_ret[name] = getattr(self, name)
+        return visual_ret
     
     def get_current_losses(self):
         errors_ret = OrderedDict()

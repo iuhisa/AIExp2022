@@ -29,6 +29,12 @@ class RecycleGANModel(BaseModel):
         else:
             self.model_names = ['G_A', 'G_B', 'P_A', 'P_B']
         self.adversarial_loss_p = opt.adversarial_loss_p
+        self.visual_names = ['real_A0', 'real_A1', 'real_A2',
+                             'real_B0', 'real_B1', 'real_B2',
+                             'fake_A0', 'fake_A1', 'fake_A2',
+                             'fake_B0', 'fake_B1', 'fake_B2',
+                             'rec_A'  , 'rec_B',
+                             'pred_A2', 'pred_B2']
     
         self.netG_A = networks.define_G(opt.input_nc, opt.output_nc, opt.ngf, opt.netG, opt.norm, not opt.no_dropout, opt.init_type, opt.init_gain, self.gpu_ids)
         self.netG_B = networks.define_G(opt.output_nc, opt.input_nc, opt.ngf, opt.netG, opt.norm, not opt.no_dropout, opt.init_type, opt.init_gain, self.gpu_ids)

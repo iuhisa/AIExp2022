@@ -20,29 +20,32 @@ def get_unpair_dataloader(opt):
         batch_size : size of batch
         phase : 'train', 'val' or 'test'
     '''
-    if opt.max_dataset_size == float('inf'):
-        A_paths = dataset.get_filepath_list(opt.A_dataroot, opt.phase)
-        B_paths = dataset.get_filepath_list(opt.B_dataroot, opt.phase)
-    else:
-        A_paths = dataset.get_filepath_list(opt.A_dataroot, opt.phase)[:opt.max_dataset_size]
-        B_paths = dataset.get_filepath_list(opt.B_dataroot, opt.phase)[:opt.max_dataset_size]
 
-    trans = transform.get_transform(opt)
+    A_dataloader = get_dataloader(opt, 'A')
+    B_dataloader = get_dataloader(opt, 'B')
+    # if opt.max_dataset_size == float('inf'):
+    #     A_paths = dataset.get_filepath_list(opt.A_dataroot, opt.phase)
+    #     B_paths = dataset.get_filepath_list(opt.B_dataroot, opt.phase)
+    # else:
+    #     A_paths = dataset.get_filepath_list(opt.A_dataroot, opt.phase)[:opt.max_dataset_size]
+    #     B_paths = dataset.get_filepath_list(opt.B_dataroot, opt.phase)[:opt.max_dataset_size]
 
-    if opt.A_datatype == 'isolated':
-        A_dataset = dataset.SingleDataset(A_paths, trans)
-    elif opt.A_datatype == 'sequential':
-        A_dataset = dataset.SequentialDataset(A_paths, trans, n=opt.sequential_len)
+    # trans = transform.get_transform(opt)
 
-    if opt.B_datatype == 'isolated':
-        B_dataset = dataset.SingleDataset(B_paths, trans)
-    elif opt.B_datatype == 'sequential':
-        B_dataset = dataset.SequentialDataset(B_paths, trans, n=opt.sequential_len)
+    # if opt.A_datatype == 'isolated':
+    #     A_dataset = dataset.SingleDataset(A_paths, trans)
+    # elif opt.A_datatype == 'sequential':
+    #     A_dataset = dataset.SequentialDataset(A_paths, trans, n=opt.sequential_len)
 
-    print('A datset num: {}, B dataset num: {}'.format(len(A_dataset), len(B_dataset)))
+    # if opt.B_datatype == 'isolated':
+    #     B_dataset = dataset.SingleDataset(B_paths, trans)
+    # elif opt.B_datatype == 'sequential':
+    #     B_dataset = dataset.SequentialDataset(B_paths, trans, n=opt.sequential_len)
 
-    A_dataloader = DataLoader(A_dataset, opt.batch_size, shuffle=opt.isTrain, num_workers=opt.num_threads)
-    B_dataloader = DataLoader(B_dataset, opt.batch_size, shuffle=opt.isTrain, num_workers=opt.num_threads)
+    # print('A datset num: {}, B dataset num: {}'.format(len(A_dataset), len(B_dataset)))
+
+    # A_dataloader = DataLoader(A_dataset, opt.batch_size, shuffle=opt.isTrain, num_workers=opt.num_threads)
+    # B_dataloader = DataLoader(B_dataset, opt.batch_size, shuffle=opt.isTrain, num_workers=opt.num_threads)
     return A_dataloader, B_dataloader
 
 def get_dataloader(opt, domain='A'):

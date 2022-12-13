@@ -7,9 +7,11 @@ import numpy as np
 import os.path as osp
 from collections import OrderedDict
 import pandas as pd
+from ..model import CycleGANModel, RecycleGANModel
 
 class Visualizer():
     def __init__(self, opt, loss_names):
+        self.opt = opt
         self.save_dir = osp.join(opt.checkpoints_dir, opt.name)
         self.logs = []
         self.epoch_losses = {}
@@ -42,24 +44,47 @@ class Visualizer():
         ax.set_xlabel('epoch')
         ax.legend()
         fig.savefig(osp.join(self.save_dir, 'loss_plot.pdf'))
+
+    def save_images(self, model, epoch=''):
+        if isinstance(model, CycleGANModel):
+            save_n = self.opt.save_image_num
+            visuals = model.get_current_visuals()
+            fig = self.make_fig(torch.stack([visuals['real_A'][:save_n], visuals['fake_B'][:save_n], visuals['rec_A'][:save_n]]))
+            fig.savefig(osp.join(self.save_dir, '{}_{}_images.jpg'.format(epoch, 'AtoB')))
+            fig = self.make_fig([visuals['real_B'][:save_n], visuals['fake_A'][:save_n], visuals['rec_B'][:save_n]])
+            fig.savefig(osp.join(self.save_dir, '{}_{}_images.jpg'.format(epoch, 'BtoA')))
+            
+        elif isinstance(model, RecycleGANModel):
+            visuals = model.get_current_visuals()
+            fig = self.make_fig(torch.stack([
+                torch.stack([visuals['real_A0'][0], visuals['real_A1'][0], visuals['real_A2'][0]]),
+                torch.stack([visuals['fake_B0'][0], visuals['fake_B1'][0], visuals['fake_B2'][0]])
+            ]))
+            fig.savefig(osp.join(self.save_dir, '{}_{}_images.jpg'.format(epoch, 'AtoB')))
+            fig = self.make_fig(torch.stack([
+                torch.stack([visuals['real_B0'][0], visuals['real_B1'][0], visuals['real_B2'][0]]),
+                torch.stack([visuals['fake_A0'][0], visuals['fake_A1'][0], visuals['fake_A2'][0]])
+            ]))
+            fig.savefig(osp.join(self.save_dir, '{}_{}_images.jpg'.format(epoch, 'BtoA')))
+
     
-    def save_imgs(self, imgs:torch.Tensor, epoch='', id=''):
-        '''
-        parameters
-        ------------
-            imgs.shape: torch.size([kinds of image, num of image per 1 kind, channels, height, width])
-        '''
-        fig = self.make_fig(imgs)
-        save_path = osp.join(self.save_dir, '{}_{}_images.jpg'.format(epoch, id))
-        fig.savefig(save_path)
+    # def save_imgs(self, imgs:torch.Tensor, epoch='', id=''):
+    #     '''
+    #     parameters
+    #     ------------
+    #         imgs.shape: torch.size([kinds of image, num of image per 1 kind, channels, height, width])
+    #     '''
+    #     fig = self.make_fig(imgs)
+    #     save_path = osp.join(self.save_dir, '{}_{}_images.jpg'.format(epoch, id))
+    #     fig.savefig(save_path)
 
 
-    def save_imgs(self, real_imgs:torch.Tensor, fake_imgs:torch.Tensor, rec_imgs:torch.Tensor, epoch='', id=''):
-        assert((real_imgs.dim() == fake_imgs.dim()) and (fake_imgs.dim() == rec_imgs.dim()))
+    # def save_imgs(self, real_imgs:torch.Tensor, fake_imgs:torch.Tensor, rec_imgs:torch.Tensor, epoch='', id=''):
+    #     assert((real_imgs.dim() == fake_imgs.dim()) and (fake_imgs.dim() == rec_imgs.dim()))
 
-        fig = self.make_fig(torch.stack([real_imgs, fake_imgs, rec_imgs]))
-        save_path = osp.join(self.save_dir, '{}_{}_images.jpg'.format(epoch, id))
-        fig.savefig(save_path)
+    #     fig = self.make_fig(torch.stack([real_imgs, fake_imgs, rec_imgs]))
+    #     save_path = osp.join(self.save_dir, '{}_{}_images.jpg'.format(epoch, id))
+    #     fig.savefig(save_path)
 
     def make_fig(self, imgs: torch.Tensor):
         '''
@@ -81,67 +106,11 @@ class Visualizer():
                 img = ((img*0.5 + 0.5)*255).clip(0,255)
                 axes[i, j].set_xticks([])
                 axes[i, j].imshow(img.astype(np.uint8).transpose(1,2,0))
-            # real = real_imgs[i].detach().cpu().numpy()
-            # fake = fake_imgs[i].detach().cpu().numpy()
-            # rec = rec_imgs[i].detach().cpu().numpy()
-            # s = ((s*0.5 + 0.5)*255).clip(0, 255)
-            # d = ((d*0.5 + 0.5)*255).clip(0, 255)
-            # r = ((r*0.5 + 0.5)*255).clip(0, 255)
-
-            # axes[0, i].set_xticks([])
-            # axes[1, i].set_xticks([])
-            # axes[2, i].set_xticks([])
-            # axes[0, i].set_yticks([])
-            # axes[1, i].set_yticks([])
-            # axes[2, i].set_yticks([])
-            # axes[0, i].imshow(s.astype(np.uint8).transpose(1,2,0))
-            # axes[1, i].imshow(d.astype(np.uint8).transpose(1,2,0))
-            # axes[2, i].imshow(r.astype(np.uint8).transpose(1,2,0))
         return fig
+
     def show_imgs(self, real_imgs:torch.Tensor, fake_imgs:torch.Tensor, rec_imgs:torch.Tensor, id=''):
         assert((real_imgs.dim() == fake_imgs.dim()) and (fake_imgs.dim() == rec_imgs.dim()))
 
         fig = self.make_fig(torch.cat([real_imgs, fake_imgs, rec_imgs]))
         plt.title(id)
-        plt.show()        
-
-
-    # def save(model, dataloaders, device, save_path):
-    #     # if generate image using CycleGAN
-    #     fig = self.draw_figure_CycleGAN(model, *dataloaders, device)
-    #     fig.savefig(save_path)
-
-    # def show(model, dataloaders, device, save_path):
-    #     # if generate image using CycleGAN
-    #     fig = self.draw_figure_CycleGAN(model, *dataloaders, device)
-    #     plt.show(fig)
-
-
-    # def draw_figure_CycleGAN(model, src_dataloader, dst_dataloader, device):
-    #     src = next(iter(src_dataloader))
-    #     dst = next(iter(dst_dataloader))
-    #     src = src.to(device)
-    #     dst = dst.to(device)
-        
-    #     regen_images = model(torch.stack(src))
-    #     n = len(dst)
-    #     fig = plt.figure(num=1, clear=True, tight_layout=True) # memory leak 対策
-    #     axes = fig.subplots(3, n)
-    #     for i in range(0, n):
-    #         s = src[i].detach().cpu().numpy()
-    #         d = dst[i].detach().cpu().numpy()
-    #         r = regen_images[i].detach().cpu().numpy()
-    #         s = ((s*0.5 + 0.5)*255).clip(0, 255)
-    #         d = ((d*0.5 + 0.5)*255).clip(0, 255)
-    #         r = ((r*0.5 + 0.5)*255).clip(0, 255)
-
-    #         axes[0, i].set_xticks([])
-    #         axes[1, i].set_xticks([])
-    #         axes[2, i].set_xticks([])
-    #         axes[0, i].set_yticks([])
-    #         axes[1, i].set_yticks([])
-    #         axes[2, i].set_yticks([])
-    #         axes[0, i].imshow(s.astype(np.uint8).transpose(1,2,0))
-    #         axes[1, i].imshow(d.astype(np.uint8).transpose(1,2,0))
-    #         axes[2, i].imshow(r.astype(np.uint8).transpose(1,2,0))
-    #     return fig
+        plt.show()

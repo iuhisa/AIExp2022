@@ -6,6 +6,7 @@ import torch.nn as nn
 import importlib
 
 from .cycle_gan_model import CycleGANModel
+from .recycle_gan_model import RecycleGANModel
 from .base_model import BaseModel
 
 
