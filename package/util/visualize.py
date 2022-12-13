@@ -51,7 +51,7 @@ class Visualizer():
             visuals = model.get_current_visuals()
             fig = self.make_fig(torch.stack([visuals['real_A'][:save_n], visuals['fake_B'][:save_n], visuals['rec_A'][:save_n]]))
             fig.savefig(osp.join(self.save_dir, '{}_{}_images.jpg'.format(epoch, 'AtoB')))
-            fig = self.make_fig([visuals['real_B'][:save_n], visuals['fake_A'][:save_n], visuals['rec_B'][:save_n]])
+            fig = self.make_fig(torch.stack([visuals['real_B'][:save_n], visuals['fake_A'][:save_n], visuals['rec_B'][:save_n]]))
             fig.savefig(osp.join(self.save_dir, '{}_{}_images.jpg'.format(epoch, 'BtoA')))
             
         elif isinstance(model, RecycleGANModel):
@@ -97,14 +97,15 @@ class Visualizer():
         
         m = imgs.size()[0]
         n = imgs.size()[1]
-        assert(m > 1 or n > 1)
         fig = plt.figure(num=1, clear=True, tight_layout=True) # memory leak 対策
-        axes = fig.subplots(m, n)
+        
+        axes = fig.subplots(max(2, m), max(2, n))
         for i in range(0, m):
             for j in range(0, n):
                 img = imgs[i][j].detach().cpu().numpy()
                 img = ((img*0.5 + 0.5)*255).clip(0,255)
                 axes[i, j].set_xticks([])
+                axes[i, j].set_yticks([])
                 axes[i, j].imshow(img.astype(np.uint8).transpose(1,2,0))
         return fig
 

@@ -52,14 +52,14 @@ class BaseModel(ABC):
             self.forward()
 
     def update_learning_rate(self):
-        old_lr = self.optimizers[0].param.groups[0]['lr']
+        old_lr = self.optimizers[0].param_groups[0]['lr']
         for scheduler in self.schedulers:
             if self.opt.lr_policy == 'plateau':
                 scheduler.step(self.metric)
             else:
                 scheduler.step()
         lr = self.optimizers[0].param_groups[0]['lr']
-        print('learning rage %.7f -> %.7f' % (old_lr, lr))
+        print('learning rate %.7f -> %.7f' % (old_lr, lr))
 
     def get_current_visuals(self):
         visual_ret = OrderedDict()
