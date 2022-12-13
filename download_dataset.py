@@ -34,6 +34,10 @@ DATASETS = {
         'url': 'http://efrosgans.eecs.berkeley.edu/cyclegan/datasets/ukiyoe2photo.zip',
         'desc': 'これをダウンロードすることでphoto_ukiyoeデータセットも作成されます'} ,
     'photo_ukiyoe': {'desc': 'ukiyoeデータセットの作成に伴って作成されます'},
+    'vangogh': {
+        'url': 'http://efrosgans.eecs.berkeley.edu/cyclegan/datasets/vangogh2photo.zip',
+        'desc': 'これをダウンロードすることでphoto_vangoghデータセットも作成されます'} ,
+    'photo_vangogh': {'desc': 'vangoghデータセットの作成に伴って作成されます'},
     'nature_video': {'desc': '素材サイトのPexelsから、natureに該当する動画を連番画像で出力します'},
     'ukiyoe_video': {'desc': 'ukiyoeデータセットが必要です。インターネット接続は不要です'}
 }
@@ -114,20 +118,20 @@ def make_vdo_list(dataset_root_dir):
     with open(osp.join(root_dir, 'val.txt'), 'w') as f:
         f.write(val_list)
 
-def download_ukiyoe():
-    print('ukiyoeディレクトリ、photo_ukiyoeディレクトリを作成します')
-    if osp.exists('datasets/ukiyoe') or osp.exists('datasets/photo_ukiyoe'):
-        print('既にデータが存在しています。データを再ダウンロードしたい場合はukiyoeディレクトリとphoto_ukiyoeを削除してください')
+def download_berkeley_A2B(A: str, B: str):
+    print(f'{A}ディレクトリ、{B}_{A}ディレクトリを作成します')
+    if osp.exists(f'datasets/{A}') or osp.exists(f'datasets/{B}_{A}'):
+        print(f'既にデータが存在しています。データを再ダウンロードしたい場合は{A}ディレクトリと{B}_{A}を削除してください')
         return
-    dir_path_ukiyoe = osp.join('datasets', 'ukiyoe')
-    dir_path_photo = osp.join('datasets', 'photo_ukiyoe')
-    download_file_path = osp.join('datasets', 'ukiyoe', 'ukiyoe.zip')
-    check_dir(dir_path_ukiyoe+'/images')
-    check_dir(dir_path_photo+'/images')
+    dir_path_A = osp.join('datasets', f'{A}')
+    dir_path_B = osp.join('datasets', f'{B}_{A}')
+    download_file_path = osp.join('datasets', f'{A}', f'{A}.zip')
+    check_dir(dir_path_A+'/images')
+    check_dir(dir_path_B+'/images')
     
-    print('ukiyoeデータセットをダウンロードします')
-    file_url = DATASETS['ukiyoe']['url']
-    file_size = int(requests.head(DATASETS['ukiyoe']['url']).headers["content-length"])
+    print(f'{A}データセットをダウンロードします')
+    file_url = DATASETS[f'{A}']['url']
+    file_size = int(requests.head(DATASETS[f'{A}']['url']).headers["content-length"])
     res = requests.get(file_url, stream=True)
     pbar = tqdm(total=file_size, unit="B", unit_scale=True)
     with open(download_file_path, 'wb') as file:
@@ -138,23 +142,23 @@ def download_ukiyoe():
     
     print('ディレクトリを再構築中です')
     zp = zipfile.ZipFile(download_file_path, 'r')
-    zp.extractall(dir_path_ukiyoe)
+    zp.extractall(dir_path_A)
     zp.close()
     
-    for file_path in os.listdir(dir_path_ukiyoe+'/ukiyoe2photo/testA'):
-        shutil.move(dir_path_ukiyoe+f'/ukiyoe2photo/testA/{file_path}', dir_path_ukiyoe+'/images')
-    for file_path in os.listdir(dir_path_ukiyoe+'/ukiyoe2photo/trainA'):
-        shutil.move(dir_path_ukiyoe+f'/ukiyoe2photo/trainA/{file_path}', dir_path_ukiyoe+'/images')
-    for file_path in os.listdir(dir_path_ukiyoe+'/ukiyoe2photo/testB'):
-        shutil.move(dir_path_ukiyoe+f'/ukiyoe2photo/testB/{file_path}', dir_path_photo+'/images')
-    for file_path in os.listdir(dir_path_ukiyoe+'/ukiyoe2photo/trainB'):
-        shutil.move(dir_path_ukiyoe+f'/ukiyoe2photo/trainB/{file_path}', dir_path_photo+'/images')
+    for file_path in os.listdir(dir_path_A+f'/{A}2{B}/testA'):
+        shutil.move(dir_path_A+f'/{A}2{B}/testA/{file_path}', dir_path_A+f'/images/{file_path}')
+    for file_path in os.listdir(dir_path_A+f'/{A}2{B}/trainA'):
+        shutil.move(dir_path_A+f'/{A}2{B}/trainA/{file_path}', dir_path_A+f'/images/{file_path}')
+    for file_path in os.listdir(dir_path_A+f'/{A}2{B}/testB'):
+        shutil.move(dir_path_A+f'/{A}2{B}/testB/{file_path}', dir_path_B+f'/images/{file_path}')
+    for file_path in os.listdir(dir_path_A+f'/{A}2{B}/trainB'):
+        shutil.move(dir_path_A+f'/{A}2{B}/trainB/{file_path}', dir_path_B+f'/images/{file_path}')
     
-    make_img_list('datasets/ukiyoe')
-    make_img_list('datasets/photo_ukiyoe')    
+    make_img_list(f'datasets/{A}')
+    make_img_list(f'datasets/{B}_{A}')    
 
     print('不要なファイル・ディレクトリを削除します')
-    shutil.rmtree(dir_path_ukiyoe+'/ukiyoe2photo')
+    shutil.rmtree(dir_path_A+f'/{A}2{B}')
     os.remove(download_file_path)
 
 def download_nature_video():
@@ -253,19 +257,21 @@ def main():
             print(dataset)
 
     if args.all:
-        download_ukiyoe()
+        download_berkeley_A2B(A='ukiyoe', B='photo')
+        download_berkeley_A2B(A='vangogh', B='photo')
         download_nature_video()
         create_ukiyoe_video()
         return
 
     if args.datasets:
         if 'ukiyoe' in args.datasets:
-            download_ukiyoe()
+            download_berkeley_A2B(A='ukiyoe', B='photo')
+        if 'vangogh' in args.datasets:
+            download_berkeley_A2B(A='vangogh', B='photo')
         if 'nature_video' in args.datasets:
             download_nature_video()
         if 'ukiyoe_video' in args.datasets:
             create_ukiyoe_video()
-
 
 if __name__ == "__main__":
     main()
