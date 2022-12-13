@@ -5,6 +5,7 @@ transform等が異なる
 
 from PIL import Image
 from torch.utils.data import Dataset
+import torch
 import os.path as osp
 
 def get_filepath_list(dataset_path:str, phase:str):
@@ -37,22 +38,18 @@ class SingleDataset(Dataset):
         img = self.transform(img)
         return img
 
-'''
-class FlowerDataset(Dataset):
-    def __init__(self, dst_path_list, src_path_list, transform):
-        self.dst_path_list = dst_path_list
-        self.src_path_list = src_path_list
+class SequentialDataset(Dataset):
+    def __init__(self, dataset_path_list, transform, n=3):
+        super(SequentialDataset, self).__init__()
+        self.paths = dataset_path_list
         self.transform = transform
+        self.n = n
 
     def __len__(self):
-        return len(self.dst_path_list)
+        return len(self.paths) - self.n + 1
 
     def __getitem__(self, index):
-        dst_image_path = self.dst_path_list[index]
-        dst_image = Image.open(dst_image_path)
-        dst_image_transformed = self.transform(dst_image)
-        src_image_path = self.src_path_list[index]
-        src_image = Image.open(src_image_path)
-        src_image_transformed = self.transform(src_image)
-        return dst_image_transformed, src_image_transformed
-'''
+        paths = self.paths[index: index+self.n]
+        imgs = [Image.open(path).convert('RGB') for path in paths]
+        imgs = [self.transform(img) for img in imgs]
+        return torch.stack(imgs)

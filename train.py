@@ -15,7 +15,7 @@ from package.options.train_options import TrainOptions
 if __name__ == '__main__':
     opt = TrainOptions().parse()
     A_dataloader, B_dataloader = get_unpair_dataloader(opt)
-    print('The number of training images = %d, %d' % (len(A_dataloader)*opt.batch_size, len(B_dataloader)*opt.batch_size))
+    # print('The number of training images = %d, %d' % (len(A_dataloader)*opt.batch_size, len(B_dataloader)*opt.batch_size))
 
     model = get_model(opt)
     model.setup(opt)
@@ -43,9 +43,11 @@ if __name__ == '__main__':
             model.save_networks('latest')
             model.save_networks(epoch)
             visualizer.plot_loss()
-            save_n = opt.save_image_num
-            visualizer.save_imgs(model.real_A[:save_n], model.fake_B[:save_n], model.rec_A[:save_n], epoch=epoch, id='AtoB')
-            visualizer.save_imgs(model.real_B[:save_n], model.fake_A[:save_n], model.rec_B[:save_n], epoch=epoch, id='BtoA')
+
+            # modelにimageを保存させる機能を持たせるのが吉か。
+            # save_n = opt.save_image_num
+            # visualizer.save_imgs(model.real_A[:save_n], model.fake_B[:save_n], model.rec_A[:save_n], epoch=epoch, id='AtoB')
+            # visualizer.save_imgs(model.real_B[:save_n], model.fake_A[:save_n], model.rec_B[:save_n], epoch=epoch, id='BtoA')
 
         print('End of epoch %d / %d \t Time Taken: %d sec' %(epoch, opt.n_epochs, time.time() - epoch_start_time))
         visualizer.save_loss(epoch)

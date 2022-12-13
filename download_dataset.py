@@ -7,8 +7,8 @@
 以下は、ドメイン分けされたunpairなデータセットの例
 pairのあるデータセットだったり、タスクによって構成が変わり得る
 
-./ ┬ datasets ┬ flower_pansy ┬ images ──┬ 001.png
-               │              │            ├ 002.png
+./ ┬ datasets ┬ flower_pansy ┬ images ──┬ 001.jpg
+               │              │            ├ 002.jpg
                │              ├ train.txt
                │              ├ val.txt 要る???
                │              └ test.txt
@@ -25,14 +25,18 @@ import requests
 import shutil
 from tqdm import tqdm
 import zipfile
+import pexelsPy
+import cv2
 
 DATASETS = {
     'ukiyoe': {
         'url': 'http://efrosgans.eecs.berkeley.edu/cyclegan/datasets/ukiyoe2photo.zip',
         'desc': 'これをダウンロードすることでphoto_ukiyoeデータセットも作成されます'} ,
-    'photo_ukiyoe': {'desc': 'ukiyoeデータセットの作成に伴って作成されます'}
+    'photo_ukiyoe': {'desc': 'ukiyoeデータセットの作成に伴って作成されます'},
+    'nature_video': {'desc': '素材サイトのPexelsから、natureに該当する動画を連番画像で出力します'}
 }
 
+PEXELS_API = '563492ad6f91700001000001c85472c49d3a4c189a1ed7baa64e4ae5'
 
 def make_img_list(dataset_root_dir):
     '''
@@ -106,6 +110,63 @@ def download_ukiyoe():
     shutil.rmtree(dir_path_ukiyoe+'/ukiyoe2photo')
     os.remove(download_file_path)
 
+def download_nature_video():
+    print('nature_videoディレクトリを作成します')
+    if osp.exists('datasets/nature_video'):
+        print('既にデータが存在しています。データを再ダウンロードしたい場合はnature_videoディレクトリを削除してください')
+        return
+    dir_path_nature_video = osp.join('datasets', 'nature_video')
+    check_dir(dir_path_nature_video+'/images')
+
+    print('Pexelsからnature_videoのダウンロードを開始します')
+    api = pexelsPy.API(PEXELS_API)
+    resultsPage = 50
+    pageNumbers = 10 # 50*10=500個の動画をダウンロード
+    video_list = []
+    for i in range(1, pageNumbers+1):
+        api.search_videos('nature', page=i, results_per_page=resultsPage)
+        videos = api.get_videos()
+        video_list.extend(videos)
+    
+    for data in tqdm(video_list):
+        url_video = 'https://www.pexels.com/video/' + str(data.id) + '/download'
+        r = requests.get(url_video)
+        tmp_name = data.url.split('/')[-2]
+        path = osp.join(dir_path_nature_video, 'images', tmp_name)
+        video_path = path+'.mp4'
+        with open(video_path, 'wb') as outfile:
+            outfile.write(r.content)
+        cap = cv2.VideoCapture(video_path)
+        if not cap.isOpened():
+            continue
+        fps = cap.get(cv2.CAP_PROP_FPS) # FPSを取得
+        target_fps = 10 # 10FPSに変換
+        thresh = fps / target_fps
+        max_frames = 200 # 連番画像の最大書き出し数（10FPS×200枚で最大20秒）
+        digit_length = min(len(str(int(cap.get(cv2.CAP_PROP_FRAME_COUNT)/thresh - 1))), len(str(max_frames - 1)))  # 連番画像の最大桁数を取得
+        n = 0
+        counter = 0
+
+        while True:
+            ret, frame = cap.read()
+            if ret:
+                counter += 1
+                if counter >= thresh:
+                    height, width = frame.shape[0], frame.shape[1]
+                    min_edge = min(height, width)
+                    frame_trim = frame[height//2-min_edge//2:height//2+min_edge//2, width//2-min_edge//2:width//2+min_edge//2] # トリミング
+                    target_size = 256 # 256*256にリサイズ
+                    frame_trim = cv2.resize(frame_trim, dsize=(target_size, target_size))
+                    cv2.imwrite('{}_{}.jpg'.format(path, str(n).zfill(digit_length)), frame_trim)
+                    n += 1
+                    if n == max_frames:
+                        break
+                    counter -= thresh
+            else:
+                break
+        os.remove(video_path)
+    
+    make_img_list('datasets/nature_video')
 
 def main():
     parser = argparse.ArgumentParser(description='データセットのダウンロード')
@@ -120,11 +181,14 @@ def main():
 
     if args.all:
         download_ukiyoe()
+        download_nature_video()
         return
 
     if args.datasets:
         if 'ukiyoe' in args.datasets:
             download_ukiyoe()
+        if 'nature_video' in args.datasets:
+            download_nature_video()
 
 
 if __name__ == "__main__":
