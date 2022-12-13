@@ -49,7 +49,15 @@ random.seed(5555)
 
 def make_img_list(dataset_root_dir):
     '''
-    dataset_root_dir e.g. 'datasets/ukiyoe'
+    Make three text files 'train.txt', 'val.txt' and 'test.txt'.
+
+    Used for dataset of isolated images.
+
+    Each files contain names of image files to use in train, validation and test mode.
+    
+    Parameters
+    ---------------------------------------
+        dataset_root_dir: path to dataset root. e.g. 'datasets/ukiyoe'
     '''
     train, val, test = 8, 1, 1
     total = train + val + test
@@ -75,6 +83,7 @@ def make_img_list(dataset_root_dir):
     train_list = '\n'.join(train_paths)
     val_list = '\n'.join(val_paths)
     test_list = '\n'.join(test_paths)
+    
     with open(osp.join(root_dir, 'train.txt'), 'w') as f:
         f.write(train_list)
     with open(osp.join(root_dir, 'test.txt'), 'w') as f:
@@ -87,7 +96,15 @@ def remove_underscore_and_numbers(filename):
 
 def make_vdo_list(dataset_root_dir):
     '''
-    dataset_root_dir e.g. 'datasets/nature_video'
+    Make three text files named 'train.txt', 'val.txt' and 'test.txt'.
+
+    Used for video-driven dataset.
+
+    Each files contain names of image files to use in train, validation and test mode.
+    
+    Parameters
+    ---------------------------------------
+        dataset_root_dir: path to dataset root. e.g. 'datasets/nature_video'
     '''
     train, val, test = 8, 1, 1
     total = train + val + test
@@ -95,18 +112,66 @@ def make_vdo_list(dataset_root_dir):
     root_dir = dataset_root_dir
     img_paths = glob(osp.join(root_dir, 'images', '*.jpg'))
     img_paths.sort()
-    random.shuffle(img_paths)
 
-    img_paths_remove_underscores = list(map(remove_underscore_and_numbers, img_paths))
-    img_paths_remove_duplicates = list(dict.fromkeys(img_paths_remove_underscores))
+    ####################################################################
+    ##
+    ## txtファイルに識別子のみを記載する場合
+    ##
+    # random.shuffle(img_paths)
 
-    img_num = len(img_paths_remove_duplicates)
-    i1 = int(img_num*train/total)
-    i2 = int(img_num*(train+val)/total)
+    # img_paths_remove_underscores = list(map(remove_underscore_and_numbers, img_paths))
+    # img_paths_remove_duplicates = list(dict.fromkeys(img_paths_remove_underscores))
 
-    train_paths = img_paths_remove_duplicates[:i1]
-    val_paths = img_paths_remove_duplicates[i1:i2]
-    test_paths = img_paths_remove_duplicates[i2:]
+    # img_num = len(img_paths_remove_duplicates)
+    # i1 = int(img_num*train/total)
+    # i2 = int(img_num*(train+val)/total)
+
+    # train_paths = img_paths_remove_duplicates[:i1]
+    # val_paths = img_paths_remove_duplicates[i1:i2]
+    # test_paths = img_paths_remove_duplicates[i2:]
+
+    ######################################################################
+    ##
+    ## txtファイルに連番も記載する場合
+    ##
+    id2names = dict() # 'hoge/fuga/{id}_{number}.jpg'に対して、 同じidのファイル名を1つの配列に格納。
+
+    
+    def get_filename(path): # pathから拡張子を抜いてファイル名だけ取り出す
+        return osp.splitext(osp.basename(path))[0]
+
+    for img_path in img_paths:
+        img_id = remove_underscore_and_numbers(img_path)
+        if not img_id in id2names.keys(): # 初めて見たidなら、配列を定義
+            id2names[img_id] = []
+        
+        id2names[img_id].append(get_filename(img_path))
+
+    ids = list(id2names.keys())
+    ids.sort()
+    for key in id2names.keys():
+        id2names[key].sort()
+
+    img_id_num = len(ids)
+    i1 = int(img_id_num*train/total)
+    i2 = int(img_id_num*(train+val)/total)
+
+    train_paths = []
+    val_paths = []
+    test_paths = []
+    for key_train in ids[:i1]:
+        names = id2names[key_train]
+        train_paths += names
+    for key_val in ids[i1:i2]:
+        names = id2names[key_val]
+        val_paths += names
+    for key_test in ids[i2:]:
+        names = id2names[key_test]
+        test_paths += names
+    ##
+    ##
+    ##
+    #################################################################
 
     train_list = '\n'.join(train_paths)
     val_list = '\n'.join(val_paths)
