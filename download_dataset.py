@@ -100,9 +100,6 @@ def make_vdo_list(dataset_root_dir):
     i1 = int(img_num*train/total)
     i2 = int(img_num*(train+val)/total)
 
-    print(img_num, i1, i2)
-    print(img_paths_remove_duplicates[:10])
-
     train_paths = img_paths_remove_duplicates[:i1]
     val_paths = img_paths_remove_duplicates[i1:i2]
     test_paths = img_paths_remove_duplicates[i2:]
