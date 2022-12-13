@@ -138,11 +138,12 @@ def download_nature_video():
             outfile.write(r.content)
         cap = cv2.VideoCapture(video_path)
         if not cap.isOpened():
-            return
+            continue
         fps = cap.get(cv2.CAP_PROP_FPS) # FPSを取得
         target_fps = 10 # 10FPSに変換
         thresh = fps / target_fps
-        digit_length = len(str(int(cap.get(cv2.CAP_PROP_FRAME_COUNT)/thresh - 1)))  # 連番画像の最大桁数を取得
+        max_frames = 200 # 連番画像の最大書き出し数（10FPS×200枚で最大20秒）
+        digit_length = min(len(str(int(cap.get(cv2.CAP_PROP_FRAME_COUNT)/thresh - 1))), len(str(max_frames - 1)))  # 連番画像の最大桁数を取得
         n = 0
         counter = 0
 
@@ -158,6 +159,8 @@ def download_nature_video():
                     frame_trim = cv2.resize(frame_trim, dsize=(target_size, target_size))
                     cv2.imwrite('{}_{}.jpg'.format(path, str(n).zfill(digit_length)), frame_trim)
                     n += 1
+                    if n == max_frames:
+                        break
                     counter -= thresh
             else:
                 break
