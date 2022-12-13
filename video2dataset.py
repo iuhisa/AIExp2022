@@ -9,7 +9,7 @@ from package.util import check_dir
 import numpy as np
 
 video_filename = 'mountain_video.mp4'
-target_size =  256
+target_size =  512 # 128, 256, 512
 
 dataset_name = video_filename.split('.')[0]
 dataset_path = osp.join('datasets', dataset_name)
