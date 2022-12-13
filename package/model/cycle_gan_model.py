@@ -5,6 +5,7 @@ import torch
 import itertools
 from .base_model import BaseModel
 from . import networks
+from ..util.image_pool import ImagePool
 
 class CycleGANModel(BaseModel):
     @staticmethod
@@ -24,17 +25,17 @@ class CycleGANModel(BaseModel):
         else:
             self.model_names = ['G_A', 'G_B']
     
-        self.netG_A = networks.define_G(opt.input_nc, opt.output_nc, opt.ngf, opt.netG, opt.act, opt.norm, not opt.no_dropout, opt.init_type, opt.init_gain, self.gpu_ids)
-        self.netG_B = networks.define_G(opt.output_nc, opt.input_nc, opt.ngf, opt.netG, opt.act, opt.norm, not opt.no_dropout, opt.init_type, opt.init_gain, self.gpu_ids)
+        self.netG_A = networks.define_G(opt.input_nc, opt.output_nc, opt.ngf, opt.netG, opt.norm, not opt.no_dropout, opt.init_type, opt.init_gain, self.gpu_ids)
+        self.netG_B = networks.define_G(opt.output_nc, opt.input_nc, opt.ngf, opt.netG, opt.norm, not opt.no_dropout, opt.init_type, opt.init_gain, self.gpu_ids)
 
         if self.isTrain:
-            self.netD_A = networks.define_D(opt.output_nc, opt.ndf, opt.n_layers_D, opt.act, opt.norm, opt.init_type, opt.init_gain, self.gpu_ids)
-            self.netD_B = networks.define_D(opt.input_nc, opt.ndf, opt.n_layers_D, opt.act, opt.norm, opt.init_type, opt.init_gain, self.gpu_ids)
+            self.netD_A = networks.define_D(opt.output_nc, opt.ndf, opt.n_layers_D, opt.norm, opt.init_type, opt.init_gain, self.gpu_ids)
+            self.netD_B = networks.define_D(opt.input_nc, opt.ndf, opt.n_layers_D, opt.norm, opt.init_type, opt.init_gain, self.gpu_ids)
 
             if opt.lambda_identity > 0.0:
                 assert(opt.input_nc == opt.output_nc)
-            # self.fake_A_pool = ImagePool(opt.pool_size)
-            # self.fake_B_pool = ImagePool(opt.pool_size)
+            self.fake_A_pool = ImagePool(opt.pool_size)
+            self.fake_B_pool = ImagePool(opt.pool_size)
 
             self.criterionGAN = networks.GANLoss(opt.gan_mode).to(self.device)
             self.criterionCycle = torch.nn.L1Loss()
@@ -67,10 +68,12 @@ class CycleGANModel(BaseModel):
 
     def backward_D_A(self):
         # imagepool
-        self.loss_D_A = self.backward_D_basic(self.netD_A, self.real_B, self.fake_B)
+        fake_B = self.fake_B_pool.query(self.fake_B)
+        self.loss_D_A = self.backward_D_basic(self.netD_A, self.real_B, fake_B)
     
     def backward_D_B(self):
-        self.loss_D_B = self.backward_D_basic(self.netD_B, self.real_A, self.fake_A)
+        fake_A = self.fake_A_pool.query(self.fake_A)
+        self.loss_D_B = self.backward_D_basic(self.netD_B, self.real_A, fake_A)
 
     def backward_G(self):
         lambda_idt = self.opt.lambda_identity

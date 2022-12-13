@@ -44,6 +44,7 @@ if __name__ == '__main__':
 
         print('End of epoch %d / %d \t Time Taken: %d sec' %(epoch, opt.n_epochs, time.time() - epoch_start_time))
         visualizer.save_loss(epoch)
+        model.update_learning_rate()
 
 '''legacy
 # GPU or CPU

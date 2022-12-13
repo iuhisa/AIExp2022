@@ -3,7 +3,41 @@ nn関連のfunc, class
 '''
 import torch
 import torch.nn as nn
+from torch.optim import lr_scheduler
 from . import activations
+
+class Identity(nn.Module):
+    def forward(self, x):
+        return x
+
+def get_scheduler(optimizer, opt):
+    if opt.lr_policy == 'linear':
+        def lambda_rule(epoch):
+            lr_l = 1.0 - max(0, epoch + opt.epoch_count - opt.n_epochs) / float(opt.n_epochs_decay + 1)
+            return lr_l
+        scheduler = lr_scheduler.LambdaLR(optimizer, lr_lambda=lambda_rule)
+    
+    elif opt.lr_policy == 'step':
+        scheduler = lr_scheduler.StepLR(optimizer, step_size=opt.lr_decay_iters, gamma=0.1)
+    elif opt.lr_policy == 'plateau':
+        scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.2, threshold=0.01, patience=5)
+    elif opt.lr_policy == 'cosine':
+        scheduler = lr_scheduler.CosineAnnealingLR(optimizer, T_max=opt.n_epochs, eta_min=0)
+    else:
+        return NotImplementedError('lr policy error')
+    return scheduler
+
+def get_norm_layer(norm_type='instance'):
+    if norm_type == 'batch':
+        norm_layer = nn.BatchNorm2d
+    elif norm_type == 'instance':
+        norm_layer = nn.InstanceNorm2d
+    elif norm_type == 'none':
+        def norm_layer(x):
+            return Identity()
+    else:
+        raise NotImplementedError('get norm error')
+    return norm_layer
 
 def init_weights(net, init_type='normal', init_gain=0.02):
     def init_func(m):
@@ -38,42 +72,26 @@ def init_net(net, init_type='normal', init_gain=0.02, gpu_ids=[]):
     return net
 
 
-def define_G(input_nc, output_nc, ngf, netG, act='tanhexp', norm='batch', use_dropout=False, init_type='normal', init_gain=0.02, gpu_ids=[]):
+def define_G(input_nc, output_nc, ngf, netG, norm='batch', use_dropout=False, init_type='normal', init_gain=0.02, gpu_ids=[]):
     net = None
-    if norm == 'batch':
-        norm_layer = nn.BatchNorm2d
-    elif norm == 'instance':
-        norm_layer = nn.InstanceNorm2d
-
-    if act == 'tanhexp':
-        act_layer = activations.TanhExp
-    elif act == 'leakyrelu':
-        act_layer = nn.LeakyReLU
+    norm_layer = get_norm_layer(norm)
     
     if netG == 'resnet_6blocks':
-        net = ResnetGenerator(input_nc=input_nc, output_nc=output_nc, ngf=ngf, act_layer=act_layer, norm_layer=norm_layer, use_dropout=use_dropout, n_blocks=6)
+        net = ResnetGenerator(input_nc=input_nc, output_nc=output_nc, ngf=ngf, norm_layer=norm_layer, use_dropout=use_dropout, n_blocks=6)
     elif netG == 'resnet_9blocks':
-        net = ResnetGenerator(input_nc=input_nc, output_nc=output_nc, ngf=ngf, act_layer=act_layer, norm_layer=norm_layer, use_dropout=use_dropout, n_blocks=9)
+        net = ResnetGenerator(input_nc=input_nc, output_nc=output_nc, ngf=ngf, norm_layer=norm_layer, use_dropout=use_dropout, n_blocks=9)
     elif netG == 'unet_128':
-        net = UnetGenerator(input_nc, output_nc, 7, ngf, act_layer=act_layer, norm_layer=norm_layer, use_dropout=use_dropout)
+        net = UnetGenerator(input_nc, output_nc, 7, ngf, norm_layer=norm_layer, use_dropout=use_dropout)
     elif netG == 'unet_256':
-        netG = UnetGenerator(input_nc, output_nc, 8, ngf, act_layer=act_layer, norm_layer=norm_layer, use_dropout=use_dropout)
+        netG = UnetGenerator(input_nc, output_nc, 8, ngf, norm_layer=norm_layer, use_dropout=use_dropout)
 
     return init_net(net, init_type=init_type, init_gain=init_gain, gpu_ids=gpu_ids)
 
-def define_D(input_nc, ndf, n_layers_D=3, act='tanhexp', norm='batch', init_type='normal', init_gain=0.02, gpu_ids=[]):
+def define_D(input_nc, ndf, n_layers_D=3, norm='batch', init_type='normal', init_gain=0.02, gpu_ids=[]):
     net = None
-    if norm == 'batch':
-        norm_layer = nn.BatchNorm2d
-    elif norm == 'instance':
-        norm_layer = nn.InstanceNorm2d
-    
-    if act == 'tanhexp':
-        act_layer = activations.TanhExp
-    elif act == 'leakyrelu':
-        act_layer = nn.LeakyReLU
+    norm_layer = get_norm_layer(norm)
 
-    net = NLayerDiscriminator(input_nc, ndf, n_layers=n_layers_D, act_layer=act_layer, norm_layer=norm_layer)
+    net = NLayerDiscriminator(input_nc, ndf, n_layers=n_layers_D, norm_layer=norm_layer)
 
     return init_net(net, init_type=init_type, init_gain=init_gain, gpu_ids=gpu_ids)
 
@@ -111,7 +129,7 @@ class GANLoss(nn.Module):
 
 
 class ResnetGenerator(nn.Module):
-    def __init__(self, input_nc, output_nc, ngf=64, norm_layer=nn.BatchNorm2d, act_layer=activations.TanhExp, use_dropout=False, n_blocks=6):
+    def __init__(self, input_nc, output_nc, ngf=64, norm_layer=nn.BatchNorm2d, use_dropout=False, n_blocks=6):
         super(ResnetGenerator, self).__init__()
 
         use_bias = (norm_layer == nn.InstanceNorm2d)
@@ -119,7 +137,7 @@ class ResnetGenerator(nn.Module):
             nn.ReflectionPad2d(3),
             nn.Conv2d(input_nc, ngf, kernel_size=7, padding=0, bias=use_bias),
             norm_layer(ngf),
-            act_layer(0.2, True)
+            nn.ReLU(True)
         ]
 
         n_downsampling = 2
@@ -128,19 +146,19 @@ class ResnetGenerator(nn.Module):
             model += [
                 nn.Conv2d(ngf * mult, ngf * mult * 2, kernel_size=3, stride=2, padding=1, bias=use_bias),
                 norm_layer(ngf * mult * 2),
-                act_layer(0.2, True)
+                nn.ReLU(True)
             ]
     
         mult = 2 ** n_downsampling
         for i in range(n_blocks):
-            model += [ResnetBlock(ngf * mult, norm_layer=norm_layer, use_dropout=use_dropout, use_bias=use_bias, act_layer=act_layer)]
+            model += [ResnetBlock(ngf * mult, norm_layer=norm_layer, use_dropout=use_dropout, use_bias=use_bias)]
         
         for i in range(n_downsampling):
             mult = 2 ** (n_downsampling - i)
             model += [
                 nn.ConvTranspose2d(ngf * mult, int(ngf * mult / 2), kernel_size=3, stride=2, padding=1, output_padding=1, bias=use_bias),
                 norm_layer(int(ngf * mult / 2)),
-                act_layer(0.2, True)
+                nn.ReLU(True)
             ]
         
         model += [
@@ -154,7 +172,7 @@ class ResnetGenerator(nn.Module):
         return self.model(input)
 
 class ResnetBlock(nn.Module):
-    def __init__(self, dim, norm_layer, use_bias, act_layer, use_dropout, padding_type='zero'):
+    def __init__(self, dim, norm_layer, use_bias, use_dropout, padding_type='zero'):
         super(ResnetBlock, self).__init__()
         conv_block = []
         p = 0
@@ -164,7 +182,7 @@ class ResnetBlock(nn.Module):
         conv_block += [
             nn.Conv2d(dim, dim, kernel_size=3, padding=p, bias=use_bias),
             norm_layer(dim),
-            act_layer(0.2, True)
+            nn.ReLU(True)
         ]
         if use_dropout:
             conv_block += [nn.Dropout(0.5)]
@@ -184,10 +202,10 @@ class ResnetBlock(nn.Module):
         return out
 
 class UnetGenerator(nn.Module):
-    def __init__(self, input_nc, output_nc, num_downs, act_layer=activations.TanhExp, ngf=64, norm_layer=nn.BatchNorm2d, use_dropout=False):
+    def __init__(self, input_nc, output_nc, num_downs, ngf=64, norm_layer=nn.BatchNorm2d, use_dropout=False):
         super(UnetGenerator, self).__init__()
         
-        unet_block = UnetSkipConnectionBlock(ngf * 8, ngf * 8, input_nc=None, submodule=None, act_layer=act_layer, norm_layer=norm_layer, innermost=True)
+        unet_block = UnetSkipConnectionBlock(ngf * 8, ngf * 8, input_nc=None, submodule=None, norm_layer=norm_layer, innermost=True)
         for i in range(num_downs - 5):
             unet_block = UnetSkipConnectionBlock(ngf * 8, ngf * 8, input_nc=None, submodule=unet_block, norm_layer=norm_layer, use_dropout=use_dropout)
         unet_block = UnetSkipConnectionBlock(ngf * 4, ngf * 8, input_nc=None, submodule=unet_block, norm_layer=norm_layer, use_dropout=use_dropout)
@@ -201,16 +219,16 @@ class UnetGenerator(nn.Module):
         return self.model(input)
 
 class UnetSkipConnectionBlock(nn.Module):
-    def __init__(self, outer_nc, inner_nc, input_nc=None, submodule=None, outermost=False, innermost=False, act_layer=activations.TanhExp, norm_layer=nn.BatchNorm2d, use_dropout=False):
+    def __init__(self, outer_nc, inner_nc, input_nc=None, submodule=None, outermost=False, innermost=False, norm_layer=nn.BatchNorm2d, use_dropout=False):
         super(UnetSkipConnectionBlock, self).__init__()
         self.outermost = outermost
         use_bias = (norm_layer == nn.InstanceNorm2d)
         if input_nc is None:
             input_nc = outer_nc
         downconv = nn.Conv2d(input_nc, inner_nc, kernel_size=4, stride=2, padding=1, bias=use_bias)
-        downact = act_layer(0.2, True)
+        downact = nn.LeakyReLU(0.2, True)
         downnorm = norm_layer(inner_nc)
-        upact = act_layer(0.2, True)
+        upact = nn.ReLU(True)
         upnorm = norm_layer(outer_nc)
         if outermost:
             upconv = nn.ConvTranspose2d(inner_nc * 2, outer_nc, kernel_size=4, stride=2, padding=1)
@@ -240,13 +258,13 @@ class UnetSkipConnectionBlock(nn.Module):
 
 
 class NLayerDiscriminator(nn.Module):
-    def __init__(self, input_nc, ndf=64, n_layers=3, norm_layer=nn.BatchNorm2d, act_layer=activations.TanhExp):
+    def __init__(self, input_nc, ndf=64, n_layers=3, norm_layer=nn.BatchNorm2d):
         super(NLayerDiscriminator, self).__init__()
 
         use_bias = (norm_layer == nn.InstanceNorm2d)
         model = [
             nn.Conv2d(input_nc, ndf, kernel_size=4, stride=2, padding=1),
-            act_layer(0.2, True)
+            nn.LeakyReLU(0.2, True)
         ]
         nf_mult = 1
         nf_mult_prev = 1
@@ -256,7 +274,7 @@ class NLayerDiscriminator(nn.Module):
             model += [
                 nn.Conv2d(ndf * nf_mult_prev, ndf * nf_mult, kernel_size=4, stride=2, padding=1, bias=use_bias),
                 norm_layer(ndf * nf_mult),
-                act_layer(0.2, True)
+                nn.LeakyReLU(0.2, True)
             ]
 
         nf_mult_prev = nf_mult
@@ -264,7 +282,7 @@ class NLayerDiscriminator(nn.Module):
         model += [
             nn.Conv2d(ndf * nf_mult_prev, ndf * nf_mult, kernel_size=4, stride=1, padding=1, bias=use_bias),
             norm_layer(ndf * nf_mult),
-            act_layer(0.2, True)
+            nn.LeakyReLU(0.2, True)
         ]
 
         model += [nn.Conv2d(ndf * nf_mult, 1, kernel_size=4, stride=1, padding=1)]

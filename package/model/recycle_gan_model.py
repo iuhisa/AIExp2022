@@ -5,6 +5,7 @@ import torch
 import itertools
 from .base_model import BaseModel
 from . import networks
+from ..util.image_pool import ImagePool
 
 class RecycleGANModel(BaseModel):
     @staticmethod
@@ -29,20 +30,20 @@ class RecycleGANModel(BaseModel):
             self.model_names = ['G_A', 'G_B', 'P_A', 'P_B']
         self.adversarial_loss_p = opt.adversarial_loss_p
     
-        self.netG_A = networks.define_G(opt.input_nc, opt.output_nc, opt.ngf, opt.netG, opt.act, opt.norm, not opt.no_dropout, opt.init_type, opt.init_gain, self.gpu_ids)
-        self.netG_B = networks.define_G(opt.output_nc, opt.input_nc, opt.ngf, opt.netG, opt.act, opt.norm, not opt.no_dropout, opt.init_type, opt.init_gain, self.gpu_ids)
+        self.netG_A = networks.define_G(opt.input_nc, opt.output_nc, opt.ngf, opt.netG, opt.norm, not opt.no_dropout, opt.init_type, opt.init_gain, self.gpu_ids)
+        self.netG_B = networks.define_G(opt.output_nc, opt.input_nc, opt.ngf, opt.netG, opt.norm, not opt.no_dropout, opt.init_type, opt.init_gain, self.gpu_ids)
 
-        self.netP_A = networks.define_G(2 * opt.input_nc, opt.input_nc, opt.npf, opt.netP, opt.act, opt.norm, not opt.no_dropout, opt.init_type, opt.init_gain, self.gpu_ids)
-        self.netP_B = networks.define_G(2 * opt.output_nc, opt.output_nc, opt.npf, opt.netP, opt.act, opt.norm, not opt.no_dropout, opt.init_type, opt.init_gain, self.gpu_ids)
+        self.netP_A = networks.define_G(2 * opt.input_nc, opt.input_nc, opt.npf, opt.netP, opt.norm, not opt.no_dropout, opt.init_type, opt.init_gain, self.gpu_ids)
+        self.netP_B = networks.define_G(2 * opt.output_nc, opt.output_nc, opt.npf, opt.netP, opt.norm, not opt.no_dropout, opt.init_type, opt.init_gain, self.gpu_ids)
 
         if self.isTrain:
-            self.netD_A = networks.define_D(opt.output_nc, opt.ndf, opt.n_layers_D, opt.act, opt.norm, opt.init_type, opt.init_gain, self.gpu_ids)
-            self.netD_B = networks.define_D(opt.input_nc, opt.ndf, opt.n_layers_D, opt.act, opt.norm, opt.init_type, opt.init_gain, self.gpu_ids)
+            self.netD_A = networks.define_D(opt.output_nc, opt.ndf, opt.n_layers_D, opt.norm, opt.init_type, opt.init_gain, self.gpu_ids)
+            self.netD_B = networks.define_D(opt.input_nc, opt.ndf, opt.n_layers_D, opt.norm, opt.init_type, opt.init_gain, self.gpu_ids)
 
             if opt.lambda_identity > 0.0:
                 assert(opt.input_nc == opt.output_nc)
-            # self.fake_A_pool = ImagePool(opt.pool_size)
-            # self.fake_B_pool = ImagePool(opt.pool_size)
+            self.fake_A_pool = ImagePool(opt.pool_size)
+            self.fake_B_pool = ImagePool(opt.pool_size)
 
             self.criterionGAN = networks.GANLoss(opt.gan_mode).to(self.device)
             self.criterionCycle = torch.nn.L1Loss()
@@ -99,19 +100,26 @@ class RecycleGANModel(BaseModel):
         return loss_D
 
     def backward_D_A(self):
-        # imagepool
-        loss_D_A0 = self.backward_D_basic(self.netD_A, self.real_B0, self.fake_B0)
-        loss_D_A1 = self.backward_D_basic(self.netD_A, self.real_B1, self.fake_B1)
-        loss_D_A2 = self.backward_D_basic(self.netD_A, self.real_B2, self.fake_B2)
-        loss_D_A3 = self.backward_D_basic(self.netD_A, self.real_B2, self.pred_B2)
+        fake_B0 = self.fake_B_pool.query(self.fake_B0)
+        loss_D_A0 = self.backward_D_basic(self.netD_A, self.real_B0, fake_B0)
+        fake_B1 = self.fake_B_pool.query(self.fake_B1)
+        loss_D_A1 = self.backward_D_basic(self.netD_A, self.real_B1, fake_B1)
+        fake_B2 = self.fake_B_pool.query(self.fake_B2)
+        loss_D_A2 = self.backward_D_basic(self.netD_A, self.real_B2, fake_B2)
+        pred_B = self.fake_B_pool.query(self.pred_B2)
+        loss_D_A3 = self.backward_D_basic(self.netD_A, self.real_B2, pred_B)
 
         self.loss_D_A = loss_D_A0.data[0] + loss_D_A1.data[0] + loss_D_A2.data[0] + loss_D_A3.data[0]
     
     def backward_D_B(self):
-        loss_D_B0 = self.backward_D_basic(self.netD_B, self.real_A0, self.fake_A0)
-        loss_D_B1 = self.backward_D_basic(self.netD_B, self.real_A1, self.fake_A1)
-        loss_D_B2 = self.backward_D_basic(self.netD_B, self.real_A2, self.fake_A2)
-        loss_D_B3 = self.backward_D_basic(self.netD_B, self.real_A2, self.pred_A2)
+        fake_A0 = self.fake_A_pool.query(self.fake_A0)
+        loss_D_B0 = self.backward_D_basic(self.netD_B, self.real_A0, fake_A0)
+        fake_A1 = self.fake_A_pool.query(self.fake_A1)
+        loss_D_B1 = self.backward_D_basic(self.netD_B, self.real_A1, fake_A1)
+        fake_A2 = self.fake_A_pool.query(self.fake_A2)
+        loss_D_B2 = self.backward_D_basic(self.netD_B, self.real_A2, fake_A2)
+        pred_A = self.fake_A_pool.query(self.pred_A2)
+        loss_D_B3 = self.backward_D_basic(self.netD_B, self.real_A2, pred_A)
 
         self.loss_D_B = loss_D_B0.data[0] + loss_D_B1.data[0] + loss_D_B2.data[0] + loss_D_B3.data[0]
     
