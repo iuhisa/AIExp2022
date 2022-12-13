@@ -25,7 +25,6 @@ import requests
 import shutil
 from tqdm import tqdm
 import zipfile
-import pexelsPy
 import cv2
 import random
 
@@ -121,6 +120,15 @@ def download_ukiyoe():
     os.remove(download_file_path)
 
 def download_nature_video():
+    # 定数
+    query = 'nature'
+    results_per_page = 80
+    page_numbers = 10 # 80*10=800個の動画をダウンロード
+    download_size = 'small'
+    max_frames = 200 # 連番画像の最大書き出し数（10FPS×200枚で最大20秒）
+    target_fps = 10 # 10FPSに変換
+    target_size = 256 # 256*256にリサイズ
+
     print('nature_videoディレクトリを作成します')
     if osp.exists('datasets/nature_video'):
         print('既にデータが存在しています。データを再ダウンロードしたい場合はnature_videoディレクトリを削除してください')
@@ -129,53 +137,48 @@ def download_nature_video():
     check_dir(dir_path_nature_video+'/images')
 
     print('Pexelsからnature_videoのダウンロードを開始します')
-    api = pexelsPy.API(PEXELS_API)
-    resultsPage = 50
-    pageNumbers = 10 # 50*10=500個の動画をダウンロード
-    video_list = []
-    for i in range(1, pageNumbers+1):
-        api.search_videos('nature', page=i, results_per_page=resultsPage)
-        videos = api.get_videos()
-        video_list.extend(videos)
-    
-    for data in tqdm(video_list):
-        url_video = 'https://www.pexels.com/video/' + str(data.id) + '/download'
-        r = requests.get(url_video)
-        tmp_name = data.url.split('/')[-2]
-        path = osp.join(dir_path_nature_video, 'images', tmp_name)
-        video_path = path+'.mp4'
-        with open(video_path, 'wb') as outfile:
-            outfile.write(r.content)
-        cap = cv2.VideoCapture(video_path)
-        if not cap.isOpened():
-            continue
-        fps = cap.get(cv2.CAP_PROP_FPS) # FPSを取得
-        target_fps = 10 # 10FPSに変換
-        thresh = fps / target_fps
-        max_frames = 200 # 連番画像の最大書き出し数（10FPS×200枚で最大20秒）
-        digit_length = min(len(str(int(cap.get(cv2.CAP_PROP_FRAME_COUNT)/thresh - 1))), len(str(max_frames - 1)))  # 連番画像の最大桁数を取得
-        n = 0
-        counter = 0
+    PEXELS_AUTHORIZATION = {"Authorization": PEXELS_API}
 
-        while True:
-            ret, frame = cap.read()
-            if ret:
-                counter += 1
-                if counter >= thresh:
-                    height, width = frame.shape[0], frame.shape[1]
-                    min_edge = min(height, width)
-                    frame_trim = frame[height//2-min_edge//2:height//2+min_edge//2, width//2-min_edge//2:width//2+min_edge//2] # トリミング
-                    target_size = 256 # 256*256にリサイズ
-                    frame_trim = cv2.resize(frame_trim, dsize=(target_size, target_size))
-                    cv2.imwrite('{}_{}.jpg'.format(path, str(n).zfill(digit_length)), frame_trim)
-                    n += 1
-                    if n == max_frames:
-                        break
-                    counter -= thresh
-            else:
-                break
-        os.remove(video_path)
-    
+    for i in range(1, page_numbers+1):
+        url = "https://api.pexels.com/videos/search?query={}&size={}&per_page={}&page={}".format(query, download_size, results_per_page, i)
+        request = requests.get(url, timeout=10, headers=PEXELS_AUTHORIZATION).json()
+        videos = request['videos']
+        print('{}/{}'.format(i, page_numbers))
+        for i in tqdm(range(len(videos))):
+            video_id = videos[i]['url'].split('/')[-2]
+            path = osp.join('datasets', 'nature_video', 'images', video_id)
+            for j in range(len(videos[i]['video_files'])):
+                if videos[i]['video_files'][j]['quality']=='sd' and videos[i]['video_files'][j]['file_type']=='video/mp4': # SDのmp4形式をダウンロード
+                    url_video = videos[i]['video_files'][j]['link']
+                    r = requests.get(url_video)
+                    with open(path+'.mp4', 'wb') as outfile:
+                        outfile.write(r.content)
+            cap = cv2.VideoCapture(path+'.mp4')
+            if not cap.isOpened():
+                continue
+            fps = cap.get(cv2.CAP_PROP_FPS) # FPSを取得
+            thresh = fps / target_fps
+            digit_length = min(len(str(int(cap.get(cv2.CAP_PROP_FRAME_COUNT)/thresh - 1))), len(str(max_frames - 1)))  # 連番画像の最大桁数を取得
+            n = 0
+            counter = 0
+            while True:
+                ret, frame = cap.read()
+                if ret:
+                    counter += 1
+                    if counter >= thresh:
+                        height, width = frame.shape[0], frame.shape[1]
+                        min_edge = min(height, width)
+                        frame_trim = frame[height//2-min_edge//2:height//2+min_edge//2, width//2-min_edge//2:width//2+min_edge//2] # トリミング
+                        frame_trim = cv2.resize(frame_trim, dsize=(target_size, target_size))
+                        cv2.imwrite('{}_{}.jpg'.format(path, str(n).zfill(digit_length)), frame_trim)
+                        n += 1
+                        if n == max_frames:
+                            break
+                        counter -= thresh
+                else:
+                    break
+            os.remove(path+'.mp4')
+
     make_img_list('datasets/nature_video')
 
 def main():
