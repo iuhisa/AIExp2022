@@ -19,4 +19,4 @@ class TestOptions(BaseOptions):
         # To avoid cropping, the load_size should be the same as crop_size
         parser.set_defaults(load_size=parser.get_default('crop_size'))
         self.isTrain = False
-        return 
+        return parser

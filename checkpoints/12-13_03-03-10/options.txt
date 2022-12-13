@@ -1,41 +1,39 @@
 ----------------- Options ---------------
-               A_dataroot: photo_ukiyoe                  	[default: None]
-               B_dataroot: ukiyoe                        	[default: None]
-               batch_size: 32                            
-                    beta1: 0.5                           
+               A_dataroot: nature_video_test             	[default: None]
+               A_datatype: isolated                      
+               B_dataroot: hoge                          	[default: None]
+               B_datatype: isolated                      
+                      act: tanhexp                       
+             aspect_ratio: 1.0                           
+               batch_size: 1                             	[default: 32]
           checkpoints_dir: checkpoints                   
-           continue_train: False                         
-                crop_size: 128                           
+                crop_size: 256                           	[default: 128]
+                direction: AtoB                          
                     epoch: latest                        
-              epoch_count: 1                             
+                     eval: False                         
                      flip: False                         
-                 gan_mode: lsgan                         
                 init_gain: 0.02                          
                 init_type: normal                        
                  input_nc: 3                             
-                  isTrain: True                          	[default: None]
-                 lambda_A: 10.0                          
-                 lambda_B: 10.0                          
-          lambda_identity: 0.5                           
+                  isTrain: False                         	[default: None]
                 load_iter: 0                             	[default: 0]
-                load_size: 158                           
-                       lr: 0.0002                        
+                load_size: 256                           	[default: 128]
          max_dataset_size: inf                           
-                    model: cycle_gan                     
-                 n_epochs: 100                           
+                    model: cycle_gan                     	[default: test]
                n_layers_D: 3                             
-                     name: 12-13_03-03-10                
+                     name: 12-13_03-03-10                	[default: 12-13_15-10-56]
                       ndf: 64                            
-                     netD: basic                         
-                     netG: resnet_9blocks                
+                     netG: resnet_6blocks                
                       ngf: 64                            
                no_dropout: True                          
                      norm: instance                      
+                 num_test: 50                            
               num_threads: 4                             
                 output_nc: 3                             
-                    phase: train                         
+                    phase: test                          
                preprocess: resize_and_crop               
-      save_epoch_interval: 10                            
+              results_dir: ./results/                    
            save_image_num: 5                             
+           sequential_len: 3                             
                    suffix:                               
 ----------------- End -------------------
