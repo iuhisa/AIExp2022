@@ -11,7 +11,7 @@ import os.path as osp
 # get_train_dataloader() -> dataloader
 # get_test_dataloader() -> dataloader
 
-# 複数ドメインのdataloaderを用意？
+# 複数ドメインのdataloaderを用意
 def get_unpair_dataloader(opt):
     '''
     parameters
@@ -44,3 +44,26 @@ def get_unpair_dataloader(opt):
     A_dataloader = DataLoader(A_dataset, opt.batch_size, shuffle=opt.isTrain, num_workers=opt.num_threads)
     B_dataloader = DataLoader(B_dataset, opt.batch_size, shuffle=opt.isTrain, num_workers=opt.num_threads)
     return A_dataloader, B_dataloader
+
+def get_dataloader(opt, domain='A'):
+    if domain == 'A':
+        dataroot = opt.A_dataroot
+        datatype = opt.A_datatype
+    elif domain == 'B':
+        dataroot = opt.B_dataroot
+        datatype = opt.B_datatype
+
+    if opt.max_dataset_size == float('inf'):
+        paths = dataset.get_filepath_list(dataroot, opt.phase)
+    else:
+        paths = dataset.get_filepath_list(dataroot, opt.phase)[:opt.max_dataset_size]
+    
+    trans = transform.get_transform(opt)
+
+    if datatype == 'isolated':
+        _dataset = dataset.SingleDataset(paths, trans)
+    elif datatype == 'sequential':
+        _dataset = dataset.SequentialDataset(paths, trans, n=opt.sequential_len)
+
+    dataloader = DataLoader(_dataset, opt.batch_size, shuffle=opt.isTrain, num_workers=opt.num_threads)
+    return dataloader
