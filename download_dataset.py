@@ -27,6 +27,7 @@ from tqdm import tqdm
 import zipfile
 import pexelsPy
 import cv2
+import random
 
 DATASETS = {
     'ukiyoe': {
@@ -38,6 +39,8 @@ DATASETS = {
 
 PEXELS_API = '563492ad6f91700001000001c85472c49d3a4c189a1ed7baa64e4ae5'
 
+random.seed(5555)
+
 def make_img_list(dataset_root_dir):
     '''
     dataset_root_dir e.g. 'datasets/ukiyoe'
@@ -48,13 +51,20 @@ def make_img_list(dataset_root_dir):
     # print(dataset_root_dirs)
     root_dir = dataset_root_dir
     img_paths = glob(osp.join(root_dir, 'images', '*.jpg'))
+
+    # ファイルの名前だけ取り出し -> sort -> randomに並び替え
+    img_paths = [a.split(os.sep)[-1].split('.')[0] for a in img_paths]
+    img_paths.sort()
+    random.shuffle(img_paths)
+    #
+
     img_num = len(img_paths)
     i1 = int(img_num*train/total)
     i2 = int(img_num*(train+val)/total)
 
-    train_paths = [a.split(os.sep)[-1].split('.')[0] for a in img_paths[:i1]]
-    val_paths = [a.split(os.sep)[-1].split('.')[0] for a in img_paths[i1: i2]]
-    test_paths = [a.split(os.sep)[-1].split('.')[0] for a in img_paths[i2:]]
+    train_paths = img_paths[:i1]
+    val_paths = img_paths[i1: i2]
+    test_paths = img_paths[i2:]
 
     train_list = '\n'.join(train_paths)
     val_list = '\n'.join(val_paths)
