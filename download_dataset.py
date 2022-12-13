@@ -75,6 +75,44 @@ def make_img_list(dataset_root_dir):
     with open(osp.join(root_dir, 'val.txt'), 'w') as f:
         f.write(val_list)
 
+def remove_underscore_and_numbers(filename):
+    return os.path.basename(filename).split('_')[0]
+
+def make_vdo_list(dataset_root_dir):
+    '''
+    dataset_root_dir e.g. 'datasets/nature_video'
+    '''
+    train, val, test = 8, 1, 1
+    total = train + val + test
+
+    root_dir = dataset_root_dir
+    img_paths = glob(osp.join(root_dir, 'images', '*.jpg'))
+    img_paths.sort()
+    random.shuffle(img_paths)
+
+    img_paths_remove_underscores = list(map(remove_underscore_and_numbers, img_paths))
+    img_paths_remove_duplicates = list(dict.fromkeys(img_paths_remove_underscores))
+
+    img_num = len(img_paths_remove_duplicates)
+    i1 = int(img_num*train/total)
+    i2 = int(img_num*(train+val)/total)
+
+    print(img_num, i1, i2)
+    print(img_paths_remove_duplicates[:10])
+
+    train_paths = img_paths_remove_duplicates[:i1]
+    val_paths = img_paths_remove_duplicates[i1:i2]
+    test_paths = img_paths_remove_duplicates[i2:]
+
+    train_list = '\n'.join(train_paths)
+    val_list = '\n'.join(val_paths)
+    test_list = '\n'.join(test_paths)
+    with open(osp.join(root_dir, 'train.txt'), 'w') as f:
+        f.write(train_list)
+    with open(osp.join(root_dir, 'test.txt'), 'w') as f:
+        f.write(test_list)
+    with open(osp.join(root_dir, 'val.txt'), 'w') as f:
+        f.write(val_list)
 
 def download_ukiyoe():
     print('ukiyoeディレクトリ、photo_ukiyoeディレクトリを作成します')
@@ -179,7 +217,7 @@ def download_nature_video():
                     break
             os.remove(path+'.mp4')
 
-    make_img_list('datasets/nature_video')
+    make_vdo_list('datasets/nature_video')
 
 def main():
     parser = argparse.ArgumentParser(description='データセットのダウンロード')
