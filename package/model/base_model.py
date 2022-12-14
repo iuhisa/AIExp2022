@@ -41,7 +41,7 @@ class BaseModel(ABC):
         if not self.isTrain or opt.continue_train:
             load_suffix = 'iter_%d' % opt.load_iter if opt.load_iter > 0 else opt.epoch
             self.load_networks(load_suffix)
-        # self.print_networks()
+        self.print_networks()
 
     def eval(self):
         for name in self.model_names:
@@ -104,7 +104,7 @@ class BaseModel(ABC):
             num_params = 0
             for param in net.parameters():
                 num_params += param.numel()
-            print(net)
+            # print(net)
             print('[Network %s] Total number of parameters : %.3f M' % (name, num_params / 1e6))
         print('-----------------------------------------------')
 

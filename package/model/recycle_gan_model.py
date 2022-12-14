@@ -13,7 +13,7 @@ class RecycleGANModel(BaseModel):
         parser.set_defaults(no_dropout=True)
         if is_train:
             # netP == 'prediction'は今は無し
-            parser.add_argument('--netP', type=str, default='unet_128', help='specify generator architecture [resnet_9blocks | resnet_6blocks | unet_256 | unet_128]')
+            parser.add_argument('--netP', type=str, default='unet_128', help='specify generator architecture [resnet_9blocks | resnet_6blocks | unet_256 | unet_128 | prediction]')
             parser.add_argument('--npf', type=int, default=64, help='# of pred filters in the last conv layer')
             parser.add_argument('--lambda_A', type=float, default=10.0, help='weight for cycle loss (A -> B -> A)')
             parser.add_argument('--lambda_B', type=float, default=10.0, help='weight for cycle loss (B -> A -> B)')
@@ -39,8 +39,12 @@ class RecycleGANModel(BaseModel):
         self.netG_A = networks.define_G(opt.input_nc, opt.output_nc, opt.ngf, opt.netG, opt.norm, not opt.no_dropout, opt.init_type, opt.init_gain, self.gpu_ids)
         self.netG_B = networks.define_G(opt.output_nc, opt.input_nc, opt.ngf, opt.netG, opt.norm, not opt.no_dropout, opt.init_type, opt.init_gain, self.gpu_ids)
 
-        self.netP_A = networks.define_G(2 * opt.input_nc, opt.input_nc, opt.npf, opt.netP, opt.norm, not opt.no_dropout, opt.init_type, opt.init_gain, self.gpu_ids)
-        self.netP_B = networks.define_G(2 * opt.output_nc, opt.output_nc, opt.npf, opt.netP, opt.norm, not opt.no_dropout, opt.init_type, opt.init_gain, self.gpu_ids)
+        if opt.netP == 'prediction':
+            self.netP_A = networks.define_G(opt.input_nc, opt.input_nc, opt.npf, opt.netP, opt.norm, not opt.no_dropout, opt.init_type, opt.init_gain, self.gpu_ids)
+            self.netP_B = networks.define_G(opt.output_nc, opt.output_nc, opt.npf, opt.netP, opt.norm, not opt.no_dropout, opt.init_type, opt.init_gain, self.gpu_ids)
+        else:
+            self.netP_A = networks.define_G(2 * opt.input_nc, opt.input_nc, opt.npf, opt.netP, opt.norm, not opt.no_dropout, opt.init_type, opt.init_gain, self.gpu_ids)
+            self.netP_B = networks.define_G(2 * opt.output_nc, opt.output_nc, opt.npf, opt.netP, opt.norm, not opt.no_dropout, opt.init_type, opt.init_gain, self.gpu_ids)
 
         if self.isTrain:
             self.netD_A = networks.define_D(opt.output_nc, opt.ndf, opt.n_layers_D, opt.norm, opt.init_type, opt.init_gain, self.gpu_ids)
@@ -84,16 +88,27 @@ class RecycleGANModel(BaseModel):
     def test(self):
         self.fake_B0 = self.netG_A(self.real_A0)
         self.fake_B1 = self.netG_A(self.real_A1)
-        self.fake_B2 = self.netP_B(torch.cat((self.fake_B0, self.fake_B1), 1))
+        if self.opt.netP == 'prediction':
+            self.fake_B2 = self.netP_B(self.fake_B0, self.fake_B1)
+        else:
+            self.fake_B2 = self.netP_B(torch.cat((self.fake_B0, self.fake_B1), 1))
         self.rec_A = self.netG_B(self.fake_B2)
 
         self.fake_A0 = self.netG_B(self.real_B0)
         self.fake_A1 = self.netG_B(self.real_B1)
-        self.fake_A2 = self.netP_A(torch.cat((self.fake_A0, self.fake_A1), 1))
+
+        if self.opt.netP == 'prediction':
+            self.fake_A2 = self.netP_A(self.fake_A0, self.fake_A1)
+        else:
+            self.fake_A2 = self.netP_A(torch.cat((self.fake_A0, self.fake_A1), 1))
         self.rec_B = self.netG_A(self.fake_A2)
 
-        self.pred_A2 = self.netP_A(torch.cat((self.real_A0, self.real_A1), 1))
-        self.pred_B2 = self.netP_B(torch.cat((self.real_B0, self.real_B1), 1))
+        if self.opt.netP == 'prediction':
+            self.pred_A2 = self.netP_A(self.real_A0, self.real_A1)
+            self.pred_B2 = self.netP_B(self.real_B0, self.real_B1)
+        else:
+            self.pred_A2 = self.netP_A(torch.cat((self.real_A0, self.real_A1), 1))
+            self.pred_B2 = self.netP_B(torch.cat((self.real_B0, self.real_B1), 1))
 
 
     def backward_D_basic(self, netD, real, fake):
@@ -152,7 +167,10 @@ class RecycleGANModel(BaseModel):
         self.fake_B1 = self.netG_A(self.real_A1)
         loss_G_A1 = self.criterionGAN(self.netD_A(self.fake_B1), True)
         
-        self.fake_B2 = self.netP_B(torch.cat((self.fake_B0, self.fake_B1), 1))
+        if self.opt.netP == 'prediction':
+            self.fake_B2 = self.netP_B(self.fake_B0, self.fake_B1)
+        else:
+            self.fake_B2 = self.netP_B(torch.cat((self.fake_B0, self.fake_B1), 1))
         loss_G_A2 = self.criterionGAN(self.netD_A(self.fake_B2), True)
 
         # Loss GAN  B -> A
@@ -161,13 +179,22 @@ class RecycleGANModel(BaseModel):
         self.fake_A1 = self.netG_B(self.real_B1)
         loss_G_B1 = self.criterionGAN(self.netD_B(self.fake_A1), True)
         
-        self.fake_A2 = self.netP_A(torch.cat((self.fake_A0, self.fake_A1), 1))
+        if self.opt.netP == 'prediction':
+            self.fake_A2 = self.netP_A(self.fake_A0, self.fake_A1)
+        else:
+            self.fake_A2 = self.netP_A(torch.cat((self.fake_A0, self.fake_A1), 1))
         loss_G_B2 = self.criterionGAN(self.netD_B(self.fake_A2), True)
 
         # Loss pred
-        self.pred_A2 = self.netP_A(torch.cat((self.real_A0, self.real_A1), 1))
+        if self.opt.netP == 'prediction':
+            self.pred_A2 = self.netP_A(self.real_A0, self.real_A1)
+        else:
+            self.pred_A2 = self.netP_A(torch.cat((self.real_A0, self.real_A1), 1))
         loss_pred_A = self.criterionCycle(self.pred_A2, self.real_A2) * lambda_A
-        self.pred_B2 = self.netP_B(torch.cat((self.real_B0, self.real_B1), 1))
+        if self.opt.netP == 'prediction':
+            self.pred_B2 = self.netP_B(self.real_B0, self.real_B1)
+        else:
+            self.pred_B2 = self.netP_B(torch.cat((self.real_B0, self.real_B1), 1))
         loss_pred_B = self.criterionCycle(self.pred_B2, self.real_B2) * lambda_B
 
         if self.adversarial_loss_p:

@@ -85,6 +85,8 @@ def define_G(input_nc, output_nc, ngf, netG, norm='batch', use_dropout=False, in
         net = UnetGenerator(input_nc, output_nc, 7, ngf, norm_layer=norm_layer, use_dropout=use_dropout)
     elif netG == 'unet_256':
         net = UnetGenerator(input_nc, output_nc, 8, ngf, norm_layer=norm_layer, use_dropout=use_dropout)
+    elif netG == 'prediction':
+        net = PredictionNViews(input_nc, output_nc, 6, ngf, norm_layer=norm_layer, use_dropout=use_dropout)
 
     return init_net(net, init_type=init_type, init_gain=init_gain, gpu_ids=gpu_ids)
 
@@ -201,6 +203,49 @@ class ResnetBlock(nn.Module):
     def forward(self, x):
         out = x + self.conv_block(x)
         return out
+
+class PredictionNViews(nn.Module):
+    def __init__(self, input_nc, output_nc, num_downs, ngf=32, norm_layer=nn.BatchNorm2d, use_dropout=False, n_blocks=6):
+        assert(n_blocks >= 0)
+        super(PredictionNViews, self).__init__()
+        self.input_nc = input_nc
+        self.output_nc = output_nc
+        self.ngf = ngf
+
+        use_bias = (norm_layer == nn.InstanceNorm2d)
+
+        model1 = [nn.ReflectionPad2d(3),
+                  nn.Conv2d(input_nc, ngf, kernel_size=7, padding=0, bias=use_bias),
+                  norm_layer(ngf),
+                  nn.ReLU(True)]
+        model1 += [nn.Conv2d(ngf, ngf*2, kernel_size=3, stride=1, padding=1, bias=use_bias),
+                   norm_layer(ngf*2),
+                   nn.ReLU(True)]
+        model1 += [nn.Conv2d(ngf*2, ngf*4, kernel_size=3, stride=1, padding=1, bias=use_bias),
+                   norm_layer(ngf*4),
+                   nn.ReLU(True)]
+        
+        model = UnetGenerator(ngf*4*2, ngf*4, num_downs, ngf*4*4, norm_layer=norm_layer, use_dropout=use_dropout)
+
+        model3 = [nn.Conv2d(ngf * 4, ngf * 2, kernel_size=3, stride=1, padding=1, bias=use_bias),
+                  norm_layer(ngf * 2),
+                  nn.ReLU(True)]
+        model3 += [nn.Conv2d(ngf * 2, ngf, kernel_size=3, stride=1, padding=1, bias=use_bias),
+                   norm_layer(ngf),
+                   nn.ReLU(True)]
+        model3 += [nn.ReflectionPad2d(3),
+                   nn.Conv2d(ngf, output_nc, kernel_size=7, padding=0),
+                   nn.Tanh()]
+        
+        self.model = model
+        self.model1 = nn.Sequential(*model1)
+        self.model3 = nn.Sequential(*model3)
+
+    def forward(self, input0, input1):
+        f0 = self.model1(input0)
+        f1 = self.model1(input1)
+        g = self.model(torch.cat((f0,f1),1))
+        return self.model3(g)
 
 class UnetGenerator(nn.Module):
     def __init__(self, input_nc, output_nc, num_downs, ngf=64, norm_layer=nn.BatchNorm2d, use_dropout=False):
