@@ -134,3 +134,4 @@ datasets/
 *.mp4
 *.out
 .tmp.driveupload/
+*.pth
