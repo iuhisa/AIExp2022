@@ -83,7 +83,7 @@ def define_G(input_nc, output_nc, ngf, netG, norm='batch', use_dropout=False, in
     elif netG == 'unet_128':
         net = UnetGenerator(input_nc, output_nc, 7, ngf, norm_layer=norm_layer, use_dropout=use_dropout)
     elif netG == 'unet_256':
-        netG = UnetGenerator(input_nc, output_nc, 8, ngf, norm_layer=norm_layer, use_dropout=use_dropout)
+        net = UnetGenerator(input_nc, output_nc, 8, ngf, norm_layer=norm_layer, use_dropout=use_dropout)
 
     return init_net(net, init_type=init_type, init_gain=init_gain, gpu_ids=gpu_ids)
 
@@ -243,6 +243,7 @@ class UnetSkipConnectionBlock(nn.Module):
         else:
             upconv = nn.ConvTranspose2d(inner_nc * 2, outer_nc, kernel_size=4, stride=2, padding=1, bias=use_bias)
             down = [downact, downconv, downnorm]
+            up = [upact, upconv, upnorm]
             if use_dropout:
                 model = down + [submodule] + up + [nn.Dropout(0.5)]
             else:

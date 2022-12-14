@@ -1,4 +1,5 @@
 import time
+import torch
 
 from package.model import get_model
 from package.util import visualize
@@ -6,6 +7,7 @@ from package.data import get_unpair_dataloader
 from package.options.train_options import TrainOptions
 
 if __name__ == '__main__':
+    torch.backends.cudnn.benchmark = True
     opt = TrainOptions().parse()
     A_dataloader, B_dataloader = get_unpair_dataloader(opt)
     # print('The number of training images = %d, %d' % (len(A_dataloader)*opt.batch_size, len(B_dataloader)*opt.batch_size))

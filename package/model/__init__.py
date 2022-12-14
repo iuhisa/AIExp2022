@@ -13,6 +13,8 @@ from .base_model import BaseModel
 def get_model(opt):
     if opt.model == 'cycle_gan':
         model = CycleGANModel(opt)
+    elif opt.model == 'recycle_gan':
+        model = RecycleGANModel(opt)
 
     # else model_name == 'CycleGAN':
     # ...

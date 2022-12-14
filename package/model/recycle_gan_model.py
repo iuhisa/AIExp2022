@@ -115,7 +115,7 @@ class RecycleGANModel(BaseModel):
         pred_B = self.fake_B_pool.query(self.pred_B2)
         loss_D_A3 = self.backward_D_basic(self.netD_A, self.real_B2, pred_B)
 
-        self.loss_D_A = loss_D_A0.data[0] + loss_D_A1.data[0] + loss_D_A2.data[0] + loss_D_A3.data[0]
+        self.loss_D_A = loss_D_A0.item() + loss_D_A1.item() + loss_D_A2.item() + loss_D_A3.item()
     
     def backward_D_B(self):
         fake_A0 = self.fake_A_pool.query(self.fake_A0)
@@ -127,7 +127,7 @@ class RecycleGANModel(BaseModel):
         pred_A = self.fake_A_pool.query(self.pred_A2)
         loss_D_B3 = self.backward_D_basic(self.netD_B, self.real_A2, pred_A)
 
-        self.loss_D_B = loss_D_B0.data[0] + loss_D_B1.data[0] + loss_D_B2.data[0] + loss_D_B3.data[0]
+        self.loss_D_B = loss_D_B0.item() + loss_D_B1.item() + loss_D_B2.item() + loss_D_B3.item()
     
     def backward_G(self):
         lambda_idt = self.opt.lambda_identity
@@ -165,15 +165,15 @@ class RecycleGANModel(BaseModel):
         loss_G_B2 = self.criterionGAN(self.netD_B(self.fake_A2), True)
 
         # Loss pred
-        pred_A2 = self.netP_A(torch.cat((self.real_A0, self.real_A1), 1))
-        loss_pred_A = self.criterionCycle(pred_A2, self.real_A2) * lambda_A
-        pred_B2 = self.netP_B(torch.cat((self.real_B0, self.real_B1), 1))
-        loss_pred_B = self.criterionCycle(pred_B2, self.real_B2) * lambda_B
+        self.pred_A2 = self.netP_A(torch.cat((self.real_A0, self.real_A1), 1))
+        loss_pred_A = self.criterionCycle(self.pred_A2, self.real_A2) * lambda_A
+        self.pred_B2 = self.netP_B(torch.cat((self.real_B0, self.real_B1), 1))
+        loss_pred_B = self.criterionCycle(self.pred_B2, self.real_B2) * lambda_B
 
         if self.adversarial_loss_p:
-            pred_fake = self.netD_B(pred_A2)
+            pred_fake = self.netD_B(self.pred_A2)
             loss_pred_A_adversarial = self.criterionGAN(pred_fake, True)
-            pred_fake = self.netD_A(pred_B2)
+            pred_fake = self.netD_A(self.pred_B2)
             loss_pred_B_adversarial = self.criterionGAN(pred_fake, True)
         else:
             loss_pred_A_adversarial = 0
