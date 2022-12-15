@@ -1,18 +1,15 @@
 '''
-Recycle GAN Model
+Small Recycle GAN Model
 '''
 import torch
-import itertools
 from .base_model import BaseModel
 from . import networks
-from ..util.image_pool import ImagePool
 
 class TestRecycleGANModel(BaseModel):
     @staticmethod
     def modify_commandline_options(parser, is_train):
         parser.set_defaults(no_dropout=True)
         if is_train:
-            # netP == 'prediction'は今は無し
             parser.add_argument('--netP', type=str, default='unet_128', help='specify generator architecture [resnet_9blocks | resnet_6blocks | unet_256 | unet_128 | prediction]')
             parser.add_argument('--npf', type=int, default=64, help='# of pred filters in the last conv layer')
         return parser
@@ -59,3 +56,5 @@ class TestRecycleGANModel(BaseModel):
     def get_fake(self):
         return self.fake_B
 
+    def optimize(self):
+        pass

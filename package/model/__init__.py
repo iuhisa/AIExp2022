@@ -7,6 +7,8 @@ import importlib
 
 from .cycle_gan_model import CycleGANModel
 from .recycle_gan_model import RecycleGANModel
+from .test_cycle_gan_model import TestCycleGANModel
+from .test_recycle_gan_model import TestRecycleGANModel
 from .base_model import BaseModel
 
 
@@ -15,6 +17,10 @@ def get_model(opt):
         model = CycleGANModel(opt)
     elif opt.model == 'recycle_gan':
         model = RecycleGANModel(opt)
+    elif opt.model == 'test_cycle_gan':
+        model = TestCycleGANModel(opt)
+    elif opt.model == 'test_recycle_gan':
+        model = TestRecycleGANModel(opt)
 
     # else model_name == 'CycleGAN':
     # ...

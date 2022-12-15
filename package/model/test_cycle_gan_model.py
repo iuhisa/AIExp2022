@@ -1,18 +1,15 @@
 '''
-Cycle GAN Model
+Small Cycle GAN Model
 '''
-import torch
-import itertools
 from .base_model import BaseModel
 from . import networks
-from ..util.image_pool import ImagePool
 
-class CycleGANModel(BaseModel):
+class TestCycleGANModel(BaseModel):
     @staticmethod
     def modify_commandline_options(parser, is_train):
         parser.set_defaults(no_dropout=True)
         return parser
-    
+
     def __init__(self, opt):
         BaseModel.__init__(self, opt)
         
@@ -28,3 +25,6 @@ class CycleGANModel(BaseModel):
 
     def get_fake(self):
         return self.fake_B
+
+    def optimize(self):
+        pass
