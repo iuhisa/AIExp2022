@@ -26,7 +26,7 @@ import argparse
 import requests
 from tqdm import tqdm
 from glob import glob
-from package.util import check_dir
+from package.util import check_dir, clip_image
 from transform_image import transform_image
 
 DATASETS = {
@@ -40,7 +40,8 @@ DATASETS = {
     'photo_vangogh': {'desc': 'vangoghデータセットの作成に伴って作成されます'},
     'nature_video': {'desc': '素材サイトのPexelsから、natureに該当する動画を連番画像で出力します'},
     'beautiful-scenery_video': {'desc': '素材サイトのPexelsから、beautiful-sceneryに該当する動画を連番画像で出力します'},
-    'ukiyoe_video': {'desc': 'ukiyoeデータセットが必要です。インターネット接続は不要です'}
+    'ukiyoe_video': {'desc': 'ukiyoeデータセットが必要です。インターネット接続は不要です'},
+    'hiroshige_video': {'desc': 'utagawa_hiroshigeデータセットが必要です。インターネット接続は不要です'}
 }
 
 PEXELS_API = '563492ad6f91700001000001c85472c49d3a4c189a1ed7baa64e4ae5'
@@ -373,6 +374,24 @@ def create_ukiyoe_video():
     return
 
 
+def create_hiroshige_video():
+    if not osp.exists(osp.join('datasets', 'utagawa_hiroshige')):
+        print('utagawa_hiroshigeデータセットがありません。先にutagawa_hiroshigeデータセットをダウンロードしてください。')
+        return
+    print('hiroshige_videoデータセットを作成します')
+    dir_path_hiroshige = osp.join('datasets', 'utagawa_hiroshige', 'images')
+    dir_path_hiroshige_video = osp.join('datasets', 'hiroshige_video', 'images')
+    check_dir(osp.join(dir_path_hiroshige_video))
+
+    digit_length = len(str(NUM_FILTER))-1
+    for i, file_path in enumerate(tqdm(os.listdir(dir_path_hiroshige))):
+        image = cv2.imread(osp.join(dir_path_hiroshige, file_path))
+        images = transform_image(image, NUM_FILTER)
+        for j, image_ in enumerate(images[1:]):
+            cv2.imwrite(osp.join(dir_path_hiroshige_video,  f'{i}_{str(j).zfill(digit_length)}.jpg'), cv2.resize(clip_image(image_,400,400), dsize=(256, 256)))
+
+    make_vdo_list(osp.join('datasets', 'hiroshige_video'))
+
 def main():
     parser = argparse.ArgumentParser(description='データセットのダウンロード')
     parser.add_argument('-l', '--list', help='ダウンロードできるデータセットの一覧', action='store_true')
@@ -403,6 +422,8 @@ def main():
             download_pexels('beautiful-scenery', 80, 10, 150)
         if 'ukiyoe_video' in args.datasets:
             create_ukiyoe_video()
+        if 'hiroshige_video' in args.datasets:
+            create_hiroshige_video()
 
 if __name__ == "__main__":
     main()
