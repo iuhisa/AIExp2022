@@ -51,10 +51,13 @@ if __name__=='__main__':
         scale_width = crop_width
     scale_height = int(crop_height/crop_width*scale_width)
 
-
+    j = 0 # 出力frame数
     check_dir(osp.join(dataset_path, 'images'))
     for i in tqdm(range(frame_count)):
-        if (i*out_frame_rate) % frame_rate != 0:continue
+        if i > j*frame_rate/out_frame_rate:
+            j += 1
+        else: continue
+        # if (i*out_frame_rate) % frame_rate != 0:continue
         ret, frame = cap.read()
         # if not ret: break
         img_name = 'img_{}'.format(str(i).zfill(3))
@@ -63,7 +66,7 @@ if __name__=='__main__':
         resized_frame = cv2.resize(cropped_frame, (scale_width, scale_height), interpolation=cv2.INTER_CUBIC)
         cv2.imwrite(osp.join(dataset_path, 'images', img_name + '.jpg'), resized_frame)
         img_names.append(img_name)
-        i += 1
+
     cap.release()
 
     name_list = '\n'.join(img_names)
