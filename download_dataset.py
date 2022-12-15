@@ -39,6 +39,7 @@ DATASETS = {
         'desc': 'これをダウンロードすることでphoto_vangoghデータセットも作成されます'} ,
     'photo_vangogh': {'desc': 'vangoghデータセットの作成に伴って作成されます'},
     'nature_video': {'desc': '素材サイトのPexelsから、natureに該当する動画を連番画像で出力します'},
+    'beatuiful-scenery_video': {'desc': '素材サイトのPexelsから、beatuiful-sceneryに該当する動画を連番画像で出力します'},
     'ukiyoe_video': {'desc': 'ukiyoeデータセットが必要です。インターネット接続は不要です'}
 }
 
@@ -151,6 +152,7 @@ def make_vdo_list(dataset_root_dir):
         id2names[key].sort()
 
     img_id_num = len(ids)
+    print(f'number: {img_id_num}') # 今の実装だとデータセットの数が最後までわからないので、ここで出力して確認
     i1 = int(img_id_num*train/total)
     i2 = int(img_id_num*(train+val)/total)
 
@@ -223,6 +225,69 @@ def download_berkeley_A2B(A: str, B: str):
     print('不要なファイル・ディレクトリを削除します')
     shutil.rmtree(osp.join(dir_path_A, f'{A}2{B}'))
     os.remove(download_file_path)
+
+def download_pexels(query: str, results_per_page: int, page_numbers: int, frames: int):
+    # 定数
+    download_size = 'small'
+    target_fps = 10 # 10FPSに変換
+    target_size = 256 # 256*256にリサイズ
+    dir_name = query + '_video'
+
+    print(f'{dir_name}ディレクトリを作成します')
+    if osp.exists(osp.join('datasets', dir_name)):
+        print(f'既にデータが存在しています。データを再ダウンロードしたい場合は{dir_name}ディレクトリを削除してください')
+        return
+    dir_path_video = osp.join('datasets', dir_name)
+    check_dir(osp.join(dir_path_video, 'images'))
+
+    print(f'Pexelsから{dir_name}のダウンロードを開始します')
+    PEXELS_AUTHORIZATION = {"Authorization": PEXELS_API}
+
+    for i in range(1, page_numbers+1):
+        url = f'https://api.pexels.com/videos/search?query={query}&size={download_size}&per_page={results_per_page}&page={i}'
+        request = requests.get(url, timeout=10, headers=PEXELS_AUTHORIZATION).json()
+        videos = request['videos']
+        print(f'{i}/{page_numbers}')
+        for i in tqdm(range(len(videos))):
+            video_id = videos[i]['url'].split('/')[-2]
+            path = osp.join('datasets', dir_name, 'images', video_id)
+            for j in range(len(videos[i]['video_files'])):
+                if videos[i]['video_files'][j]['quality']=='sd' and videos[i]['video_files'][j]['file_type']=='video/mp4': # SDのmp4形式をダウンロード
+                    url_video = videos[i]['video_files'][j]['link']
+                    r = requests.get(url_video)
+                    with open(path+'.mp4', 'wb') as outfile:
+                        outfile.write(r.content)
+            cap = cv2.VideoCapture(path+'.mp4')
+            if not cap.isOpened():
+                os.remove(path+'.mp4')
+                continue
+            fps = cap.get(cv2.CAP_PROP_FPS) # FPSを取得
+            thresh = fps / target_fps
+            if int(cap.get(cv2.CAP_PROP_FRAME_COUNT)/thresh) < frames:
+                os.remove(path+'.mp4')
+                continue
+            digit_length = min(len(str(int(cap.get(cv2.CAP_PROP_FRAME_COUNT)/thresh - 1))), len(str(frames - 1)))  # 連番画像の最大桁数を取得
+            n = 0
+            counter = 0
+            while True:
+                ret, frame = cap.read()
+                if ret:
+                    counter += 1
+                    if counter >= thresh:
+                        height, width = frame.shape[0], frame.shape[1]
+                        min_edge = min(height, width)
+                        frame_trim = frame[height//2-min_edge//2:height//2+min_edge//2, width//2-min_edge//2:width//2+min_edge//2] # トリミング
+                        frame_trim = cv2.resize(frame_trim, dsize=(target_size, target_size))
+                        cv2.imwrite('{}_{}.jpg'.format(path, str(n).zfill(digit_length)), frame_trim)
+                        n += 1
+                        if n == frames:
+                            break
+                        counter -= thresh
+                else:
+                    break
+            os.remove(path+'.mp4')
+
+    make_vdo_list(osp.join('datasets', f'{dir_name}'))
 
 def download_nature_video():
     # 定数
@@ -323,6 +388,7 @@ def main():
         download_berkeley_A2B(A='ukiyoe', B='photo')
         download_berkeley_A2B(A='vangogh', B='photo')
         download_nature_video()
+        download_pexels('beatuiful-scenery', 80, 10, 150)
         create_ukiyoe_video()
         return
 
@@ -333,6 +399,8 @@ def main():
             download_berkeley_A2B(A='vangogh', B='photo')
         if 'nature_video' in args.datasets:
             download_nature_video()
+        if 'beatuiful-scenery_video' in args.datasets:
+            download_pexels('beatuiful-scenery', 80, 10, 150)
         if 'ukiyoe_video' in args.datasets:
             create_ukiyoe_video()
 
