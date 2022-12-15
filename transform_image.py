@@ -2,7 +2,7 @@ import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 import random
-random.seed(1)
+random.seed(111)
 
 '''
 参考 https://qiita.com/koshian2/items/c133e2e10c261b8646bf
@@ -147,13 +147,13 @@ def transform_image(image: np.ndarray, num_filter:int = 10)->list:
     h, w = image.shape[:2]
     affine = np.eye(3, dtype = np.float32)
 
-    shift_pixel_x = random.uniform(-0.1, 0.1)
-    shift_pixel_y = random.uniform(-0.1, 0.1)
+    shift_pixel_x = random.uniform(-0.7, 0.7)
+    shift_pixel_y = random.uniform(-0.7, 0.7)
     #ratio = random.uniform(-0.016, 0.016)+1 #256x256で最大左右それぞれ2pixel大きくなる
     ratio = 1
-    shear_pixel_x = random.uniform(-0.1, 0.1)
-    shear_pixel_y = random.uniform(-0.1, 0.1)
-    angle = random.uniform(-0.1, 0.1)
+    shear_pixel_x = random.uniform(-0.7, 0.7)
+    shear_pixel_y = random.uniform(-0.7, 0.7)
+    angle = random.uniform(-0.15, 0.15)
     
     array_shift_x = get_array_shift_x(shift_pixel_x)
     array_shift_y = get_array_shift_y(shift_pixel_y)
@@ -180,14 +180,12 @@ def transform_image(image: np.ndarray, num_filter:int = 10)->list:
             image_ = shear_y_right(image_, shear_pixel_y)
         '''
         affine_ = affine.copy()
-        print(affine_)
         affine_[0][0]=affine_[0][0]-1
         affine_[1][1]=affine_[1][1]-1
         affine_ = affine_*(i+1)
         affine_[0][0]=affine_[0][0]+1
         affine_[1][1]=affine_[1][1]+1
-        print(affine_)
-        images.append(cv2.warpAffine(images[0], np.delete(affine_, 2, axis=0), (w, h))[20:235, 20:235])
+        images.append(cv2.warpAffine(images[0], np.delete(affine_, 2, axis=0), (w, h)))
 
     return images
 

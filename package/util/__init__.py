@@ -33,8 +33,7 @@ def get_gpu_list():
     return ret
 
 
-def clip_image(file_path: str, h: int, w: int, type: str = 'center') -> np.ndarray:
-    img = cv2.imread(file_path)
+def clip_image(img: np.ndarray, h: int, w: int, type: str = 'center') -> np.ndarray:
     h_, w_ = img.shape[:2]
     top = bottom = left = right = 0
     if h_ < h or w_ < w:
