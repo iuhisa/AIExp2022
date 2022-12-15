@@ -9,16 +9,20 @@ from package.data import get_dataloader
 from package.options.test_options import TestOptions
 
 if __name__ == '__main__':
+    torch.backends.cudnn.benchmark = True
     opt = TestOptions().parse()
     opt.no_flip = True
+    opt.batch_size = 1
     direction = opt.direction
-    AtoB = True if direction == 'AtoB' else False
-    if AtoB:
-        dataloader = get_dataloader(opt, domain='A')
-        datatype = opt.A_datatype
-    else:
-        dataloader = get_dataloader(opt, domain='B')
-        datatype = opt.B_datatype
+    dataloader = get_dataloader(opt, domain='A')
+    datatype = opt.A_datatype
+    # AtoB = True if direction == 'AtoB' else False
+    # if AtoB:
+    #     dataloader = get_dataloader(opt, domain='A')
+    #     datatype = opt.A_datatype
+    # else:
+    #     dataloader = get_dataloader(opt, domain='B')
+    #     datatype = opt.B_datatype
 
 
     model = get_model(opt)
@@ -37,35 +41,39 @@ if __name__ == '__main__':
     if opt.eval:
         model.eval()
 
-    for _data in dataloader:
-        if AtoB:
-            A_data = _data
-            B_data = torch.zeros_like(A_data)
-        else:
-            B_data = _data
-            A_data = torch.zeros_like(B_data)
-        data = {'A':A_data, 'B':B_data}
+    for A_data in dataloader:
+        # if AtoB:
+        #     A_data = _data
+        #     B_data = torch.zeros_like(A_data)
+        # else:
+        #     B_data = _data
+        #     A_data = torch.zeros_like(B_data)
+        data = {'A':A_data}
         model.set_input(data)
+        if datatype == 'isolated':
+            in_data = A_data
+        elif datatype == 'sequential':
+            in_data = A_data[:, 2]
+        # for i in range(in_data.size()[0]):
+        in_img = in_data[0].detach().cpu().numpy()
+        in_img = ((in_img*0.5 + 0.5)*255).clip(0,255).astype(np.uint8)
+        in_video.write(in_img.transpose(1,2,0)[:,:,[2,1,0]])
 
-        for i in range(_data.size()[0]):
-            in_img = _data.detach().cpu().numpy()[i]
-            in_img = ((in_img*0.5 + 0.5)*255).clip(0,255).astype(np.uint8)
-            in_video.write(in_img.transpose(1,2,0)[:,:,[2,1,0]])
-
-        model.forward()
+        # model.forward()
+        model.test()
 
         fake_data = model.get_fake() # [batch_size, channel_size, height, width]
-        if AtoB:
+        # if AtoB:
             # original_data = A_data.detach().cpu().numpy()
-            gen_data = fake_data['B'].detach().cpu().numpy()
-        else:
+        gen_data = fake_data[0].detach().cpu().numpy()
+        # else:
             # original_data = B_data.detach().cpu().numpy()
-            gen_data = fake_data['A'].detach().cpu().numpy()
+            # gen_data = fake_data['A'].detach().cpu().numpy()
 
-        for i in range(gen_data.shape[0]):
-            out_img = gen_data[i]
-            out_img = ((out_img*0.5 + 0.5)*255).clip(0,255).astype(np.uint8)
-            out_video.write(out_img.transpose(1,2,0)[:,:,[2,1,0]])
+        # for i in range(gen_data.shape[0]):
+        out_img = gen_data
+        out_img = ((out_img*0.5 + 0.5)*255).clip(0,255).astype(np.uint8)
+        out_video.write(out_img.transpose(1,2,0)[:,:,[2,1,0]])
     
     in_video.release()
     out_video.release()

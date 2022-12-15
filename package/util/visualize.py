@@ -56,17 +56,17 @@ class Visualizer():
             
         elif isinstance(model, RecycleGANModel):
             visuals = model.get_current_visuals()
-            fig = self.make_fig(torch.stack([
-                torch.stack([visuals['real_A0'][0], visuals['real_A1'][0], visuals['real_A2'][0]]),
-                torch.stack([visuals['fake_B0'][0], visuals['fake_B1'][0], visuals['fake_B2'][0]])
-            ]))
-            fig.savefig(osp.join(self.save_dir, '{}_{}_images.jpg'.format(epoch, 'AtoB')))
-            fig = self.make_fig(torch.stack([
-                torch.stack([visuals['real_B0'][0], visuals['real_B1'][0], visuals['real_B2'][0]]),
-                torch.stack([visuals['fake_A0'][0], visuals['fake_A1'][0], visuals['fake_A2'][0]])
-            ]))
-            fig.savefig(osp.join(self.save_dir, '{}_{}_images.jpg'.format(epoch, 'BtoA')))
-
+            for i in range(min(self.opt.save_image_num, self.opt.batch_size)):
+                fig = self.make_fig(torch.stack([
+                    torch.stack([visuals['real_A0'][i], visuals['real_A1'][i], visuals['real_A2'][i]]),
+                    torch.stack([visuals['fake_B0'][i], visuals['fake_B1'][i], visuals['fake_B2'][i]])
+                ]))
+                fig.savefig(osp.join(self.save_dir, '{}_{}_images.jpg'.format(epoch, f'AtoB_{i}')))
+                fig = self.make_fig(torch.stack([
+                    torch.stack([visuals['real_B0'][i], visuals['real_B1'][i], visuals['real_B2'][i]]),
+                    torch.stack([visuals['fake_A0'][i], visuals['fake_A1'][i], visuals['fake_A2'][i]])
+                ]))
+                fig.savefig(osp.join(self.save_dir, '{}_{}_images.jpg'.format(epoch, f'BtoA_{i}')))
     
     # def save_imgs(self, imgs:torch.Tensor, epoch='', id=''):
     #     '''

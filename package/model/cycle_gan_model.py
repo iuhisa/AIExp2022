@@ -117,5 +117,5 @@ class CycleGANModel(BaseModel):
         self.backward_D_B()
         self.optimizer_D.step()
     
-    def get_fake(self):
-        return {'A': self.fake_A, 'B': self.fake_B}
+    # def get_fake(self):
+    #     return {'A': self.fake_A, 'B': self.fake_B}
