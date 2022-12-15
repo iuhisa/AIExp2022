@@ -44,7 +44,7 @@ DATASETS = {
 }
 
 PEXELS_API = '563492ad6f91700001000001c85472c49d3a4c189a1ed7baa64e4ae5'
-NUM_FILTER = 10 #ukiyoe_video作成時に何回フィルタをかけるか
+NUM_FILTER = 100 #ukiyoe_video作成時に何回フィルタをかけるか
 
 random.seed(5555)
 
