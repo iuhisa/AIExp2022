@@ -39,7 +39,7 @@ DATASETS = {
         'desc': 'これをダウンロードすることでphoto_vangoghデータセットも作成されます'} ,
     'photo_vangogh': {'desc': 'vangoghデータセットの作成に伴って作成されます'},
     'nature_video': {'desc': '素材サイトのPexelsから、natureに該当する動画を連番画像で出力します'},
-    'beatuiful-scenery_video': {'desc': '素材サイトのPexelsから、beatuiful-sceneryに該当する動画を連番画像で出力します'},
+    'beautiful-scenery_video': {'desc': '素材サイトのPexelsから、beautiful-sceneryに該当する動画を連番画像で出力します'},
     'ukiyoe_video': {'desc': 'ukiyoeデータセットが必要です。インターネット接続は不要です'}
 }
 
@@ -388,7 +388,7 @@ def main():
         download_berkeley_A2B(A='ukiyoe', B='photo')
         download_berkeley_A2B(A='vangogh', B='photo')
         download_nature_video()
-        download_pexels('beatuiful-scenery', 80, 10, 150)
+        download_pexels('beautiful-scenery', 80, 10, 150)
         create_ukiyoe_video()
         return
 
@@ -399,8 +399,8 @@ def main():
             download_berkeley_A2B(A='vangogh', B='photo')
         if 'nature_video' in args.datasets:
             download_nature_video()
-        if 'beatuiful-scenery_video' in args.datasets:
-            download_pexels('beatuiful-scenery', 80, 10, 150)
+        if 'beautiful-scenery_video' in args.datasets:
+            download_pexels('beautiful-scenery', 80, 10, 150)
         if 'ukiyoe_video' in args.datasets:
             create_ukiyoe_video()
 
