@@ -9,7 +9,7 @@ random.seed(1)
 '''
 
 
-def shift_x(image: np.ndarray, shift_pixel: int) -> np.ndarray:
+def shift_x(image: np.ndarray, shift_pixel: float) -> np.ndarray:
     h, w = image.shape[:2]
     src = np.array([[0.0, 0.0],[0.0, 1.0],[1.0, 0.0]], np.float32)
     dest = src.copy()
@@ -18,7 +18,7 @@ def shift_x(image: np.ndarray, shift_pixel: int) -> np.ndarray:
     return cv2.warpAffine(image, affine, (w, h))
 
 
-def get_array_shift_x(shift_pixel: int) -> np.ndarray:
+def get_array_shift_x(shift_pixel: float) -> np.ndarray:
     src = np.array([[0.0, 0.0],[0.0, 1.0],[1.0, 0.0]], np.float32)
     dest = src.copy()
     dest[:,0] += shift_pixel
@@ -26,7 +26,7 @@ def get_array_shift_x(shift_pixel: int) -> np.ndarray:
     return np.append(affine, [[0,0,1]], axis=0)
 
 
-def shift_y(image: np.ndarray, shift_pixel: int) -> np.ndarray:
+def shift_y(image: np.ndarray, shift_pixel: float) -> np.ndarray:
     h, w = image.shape[:2]
     src = np.array([[0.0, 0.0],[0.0, 1.0],[1.0, 0.0]], np.float32)
     dest = src.copy()
@@ -35,7 +35,7 @@ def shift_y(image: np.ndarray, shift_pixel: int) -> np.ndarray:
     return cv2.warpAffine(image, affine, (w, h))
 
 
-def get_array_shift_y(shift_pixel: int) -> np.ndarray:
+def get_array_shift_y(shift_pixel: float) -> np.ndarray:
     src = np.array([[0.0, 0.0],[0.0, 1.0],[1.0, 0.0]], np.float32)
     dest = src.copy()
     dest[:,1] += shift_pixel
@@ -59,7 +59,7 @@ def get_array_expand(ratio: float) -> np.ndarray:
 
 
 #起点 左下
-def shear_x_bottom(image: np.ndarray, shear_pixel: int) -> np.ndarray:
+def shear_x_bottom(image: np.ndarray, shear_pixel: float) -> np.ndarray:
     h, w = image.shape[:2]
     src = np.array([[0.0, 0.0],[0.0, 1.0],[1.0, 0.0]], np.float32)
     dest = src.copy()
@@ -68,7 +68,7 @@ def shear_x_bottom(image: np.ndarray, shear_pixel: int) -> np.ndarray:
     return cv2.warpAffine(image, affine, (w, h))
 
 
-def get_array_shear_x_bottom(h: int, w: int, shear_pixel: int) -> np.ndarray:
+def get_array_shear_x_bottom(h: int, w: int, shear_pixel: float) -> np.ndarray:
     src = np.array([[0.0, 0.0],[0.0, 1.0],[1.0, 0.0]], np.float32)
     dest = src.copy()
     dest[:,0] += (shear_pixel / h * (h - src[:,1])).astype(np.float32)
@@ -76,7 +76,7 @@ def get_array_shear_x_bottom(h: int, w: int, shear_pixel: int) -> np.ndarray:
     return np.append(affine, [[0,0,1]], axis=0)
 
 #起点 左上
-def shear_x_top(image: np.ndarray, shear_pixel: int) -> np.ndarray:
+def shear_x_top(image: np.ndarray, shear_pixel: float) -> np.ndarray:
     h, w = image.shape[:2]
     src = np.array([[0.0, 0.0],[0.0, 1.0],[1.0, 0.0]], np.float32)
     dest = src.copy()
@@ -85,7 +85,7 @@ def shear_x_top(image: np.ndarray, shear_pixel: int) -> np.ndarray:
     return cv2.warpAffine(image, affine, (w, h))
 
 
-def get_array_shear_x_top(h: int, w: int, shear_pixel: int) -> np.ndarray:
+def get_array_shear_x_top(h: int, w: int, shear_pixel: float) -> np.ndarray:
     src = np.array([[0.0, 0.0],[0.0, 1.0],[1.0, 0.0]], np.float32)
     dest = src.copy()
     dest[:,0] += (shear_pixel / h * src[:,1]).astype(np.float32)
@@ -94,7 +94,7 @@ def get_array_shear_x_top(h: int, w: int, shear_pixel: int) -> np.ndarray:
 
 
 #起点 右上
-def shear_y_right(image: np.ndarray, shear_pixel: int) -> np.ndarray:
+def shear_y_right(image: np.ndarray, shear_pixel: float) -> np.ndarray:
     h, w = image.shape[:2]
     src = np.array([[0.0, 0.0],[0.0, 1.0],[1.0, 0.0]], np.float32)
     dest = src.copy()
@@ -103,7 +103,7 @@ def shear_y_right(image: np.ndarray, shear_pixel: int) -> np.ndarray:
     return cv2.warpAffine(image, affine, (w, h))
 
 
-def get_array_shear_y_right(h: int, w: int, shear_pixel: int) -> np.ndarray:
+def get_array_shear_y_right(h: int, w: int, shear_pixel: float) -> np.ndarray:
     src = np.array([[0.0, 0.0],[0.0, 1.0],[1.0, 0.0]], np.float32)
     dest = src.copy()
     dest[:,1] += (shear_pixel / w * (w - src[:,0])).astype(np.float32)
@@ -112,7 +112,7 @@ def get_array_shear_y_right(h: int, w: int, shear_pixel: int) -> np.ndarray:
 
 
 #起点 左上
-def shear_y_left(image: np.ndarray, shear_pixel: int) -> np.ndarray:
+def shear_y_left(image: np.ndarray, shear_pixel: float) -> np.ndarray:
     h, w = image.shape[:2]
     src = np.array([[0.0, 0.0],[0.0, 1.0],[1.0, 0.0]], np.float32)
     dest = src.copy()
@@ -121,7 +121,7 @@ def shear_y_left(image: np.ndarray, shear_pixel: int) -> np.ndarray:
     return cv2.warpAffine(image, affine, (w, h))
 
 
-def get_array_shear_y_left(h: int, w: int, shear_pixel: int) -> np.ndarray:
+def get_array_shear_y_left(h: int, w: int, shear_pixel: float) -> np.ndarray:
     src = np.array([[0.0, 0.0],[0.0, 1.0],[1.0, 0.0]], np.float32)
     dest = src.copy()
     dest[:,1] += (shear_pixel / w * src[:,0]).astype(np.float32)
@@ -147,13 +147,13 @@ def transform_image(image: np.ndarray, num_filter:int = 10)->list:
     h, w = image.shape[:2]
     affine = np.eye(3, dtype = np.float32)
 
-    shift_pixel_x = random.randint(-2, 2)
-    shift_pixel_y = random.randint(-2, 2)
+    shift_pixel_x = random.uniform(-0.1, 0.1)
+    shift_pixel_y = random.uniform(-0.1, 0.1)
     #ratio = random.uniform(-0.016, 0.016)+1 #256x256で最大左右それぞれ2pixel大きくなる
     ratio = 1
-    shear_pixel_x = random.randint(-2, 2)
-    shear_pixel_y = random.randint(-2, 2)
-    angle = random.uniform(-1, 1) #端で大体2pixel動く
+    shear_pixel_x = random.uniform(-0.1, 0.1)
+    shear_pixel_y = random.uniform(-0.1, 0.1)
+    angle = random.uniform(-0.1, 0.1)
     
     array_shift_x = get_array_shift_x(shift_pixel_x)
     array_shift_y = get_array_shift_y(shift_pixel_y)
@@ -187,7 +187,7 @@ def transform_image(image: np.ndarray, num_filter:int = 10)->list:
         affine_[0][0]=affine_[0][0]+1
         affine_[1][1]=affine_[1][1]+1
         print(affine_)
-        images.append(cv2.warpAffine(images[0], np.delete(affine_, 2, axis=0), (w, h)))
+        images.append(cv2.warpAffine(images[0], np.delete(affine_, 2, axis=0), (w, h))[20:235, 20:235])
 
     return images
 
@@ -195,10 +195,10 @@ def transform_image(image: np.ndarray, num_filter:int = 10)->list:
 def main():
     img = cv2.imread("example.jpg")
 
-    num_filter = 10
+    num_filter = 100
     converted = transform_image(img, num_filter)
-    for i in range(num_filter-1):
-        plt.subplot(250+i+1).imshow(cv2.cvtColor(converted[i+1], cv2.COLOR_BGR2RGB))
+    for i in range(num_filter-1-90):
+        plt.subplot(250+i+1).imshow(cv2.cvtColor(converted[i+90+1], cv2.COLOR_BGR2RGB))
     plt.show()
 
     return 
