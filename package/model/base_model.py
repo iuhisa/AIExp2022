@@ -16,6 +16,7 @@ class BaseModel(ABC):
         self.visual_names = []
         self.optimizers = []
         self.schedulers = []
+        self.batch_multiplier = opt.batch_multiplier
 
         torch.backends.cudnn.benchmark = True
 

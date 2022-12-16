@@ -69,7 +69,7 @@ class CycleGANModel(BaseModel):
         loss_D_real = self.criterionGAN(pred_real, True)
         pred_fake = netD(fake.detach())
         loss_D_fake = self.criterionGAN(pred_fake, False)
-        loss_D = (loss_D_real + loss_D_fake) * 0.5
+        loss_D = (loss_D_real + loss_D_fake) * 0.5 / self.batch_multiplier
         loss_D.backward()
         return loss_D
 
@@ -100,22 +100,22 @@ class CycleGANModel(BaseModel):
         self.loss_G_B = self.criterionGAN(self.netD_B(self.fake_A), True)
         self.loss_cycle_A = self.criterionCycle(self.rec_A, self.real_A) * lambda_A
         self.loss_cycle_B = self.criterionCycle(self.rec_B, self.real_B) * lambda_B
-        self.loss_G = self.loss_G_A + self.loss_G_B + self.loss_cycle_A + self.loss_cycle_B + self.loss_idt_A + self.loss_idt_B
+        self.loss_G = (self.loss_G_A + self.loss_G_B + self.loss_cycle_A + self.loss_cycle_B + self.loss_idt_A + self.loss_idt_B) / self.batch_multiplier
         self.loss_G.backward()
 
-    def optimize(self):
-        self.forward()
-
+    def backward(self):
         self.set_requires_grad([self.netD_A, self.netD_B], False)
-        self.optimizer_G.zero_grad()
         self.backward_G()
-        self.optimizer_G.step()
-
         self.set_requires_grad([self.netD_A, self.netD_B], True)
-        self.optimizer_D.zero_grad()
         self.backward_D_A()
         self.backward_D_B()
+
+    def optimize(self):
+        self.optimizer_G.step()
         self.optimizer_D.step()
-    
+
+    def zero_grad(self):
+        self.optimizer_G.zero_grad()
+        self.optimizer_D.zero_grad()
     # def get_fake(self):
     #     return {'A': self.fake_A, 'B': self.fake_B}

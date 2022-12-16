@@ -11,27 +11,33 @@ if __name__ == '__main__':
     opt = TrainOptions().parse()
     A_dataloader, B_dataloader = get_unpair_dataloader(opt)
     # print('The number of training images = %d, %d' % (len(A_dataloader)*opt.batch_size, len(B_dataloader)*opt.batch_size))
+    batch_multiplier = opt.batch_multiplier
+    print(f'Virtual Batchsize: {batch_multiplier * opt.batch_size}')
 
     model = get_model(opt)
     model.setup(opt)
-    # print(model.loss_names)
     visualizer = visualize.Visualizer(opt, model.loss_names)
 
     total_iters = 0
+    batch_count = batch_multiplier
 
     for epoch in range(opt.epoch_count, opt.n_epochs + 1):
         epoch_start_time = time.time()
-        # losses = None
-        # visualizer.reset()
 
         for A_data, B_data in zip(A_dataloader, B_dataloader):
             total_iters += opt.batch_size
             data = {'A':A_data, 'B':B_data}
             model.set_input(data)
-            model.optimize()
-            losses = model.get_current_losses()
-            # lossesのkeyごとに足す。
-            visualizer.store_loss(losses)
+            model.forward()
+            model.backward()
+            batch_count -= 1
+            if batch_count == 0:
+                model.optimize()
+                model.zero_grad()
+                batch_count = batch_multiplier
+                losses = model.get_current_losses()
+                # lossesのkeyごとに足す。
+                visualizer.store_loss(losses)
 
         if epoch % opt.save_epoch_interval == 0:
             print('saving the model at the end of epoch %d, iters %d' % (epoch, total_iters))
