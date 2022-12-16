@@ -30,14 +30,14 @@ if __name__ == '__main__':
             model.set_input(data)
             model.forward()
             model.backward()
+            losses = model.get_current_losses()
+            # lossesのkeyごとに足す。
+            visualizer.store_loss(losses)
             batch_count -= 1
             if batch_count == 0:
                 model.optimize()
                 model.zero_grad()
                 batch_count = batch_multiplier
-                losses = model.get_current_losses()
-                # lossesのkeyごとに足す。
-                visualizer.store_loss(losses)
 
         if epoch % opt.save_epoch_interval == 0:
             print('saving the model at the end of epoch %d, iters %d' % (epoch, total_iters))

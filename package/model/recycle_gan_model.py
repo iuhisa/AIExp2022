@@ -75,48 +75,12 @@ class RecycleGANModel(BaseModel):
         self.real_B1 = input['B'][:, 1].to(self.device)
         self.real_B2 = input['B'][:, 2].to(self.device)
 
-    def forward(self):
-        pass
-        # self.fake_B0, 1
-        # self.fake_A0, 1 が必要？
-
-        # self.fake_B = self.netG_A(self.real_A)
-        # self.rec_A = self.netG_B(self.fake_B)
-        # self.fake_A = self.netG_B(self.real_B)
-        # self.rec_B = self.netG_A(self.fake_A)
-    
-    def test(self):
-        self.fake_B0 = self.netG_A(self.real_A0)
-        self.fake_B1 = self.netG_A(self.real_A1)
-        if self.opt.netP == 'prediction':
-            self.fake_B2 = self.netP_B(self.fake_B0, self.fake_B1)
-        else:
-            self.fake_B2 = self.netP_B(torch.cat((self.fake_B0, self.fake_B1), 1))
-        self.rec_A = self.netG_B(self.fake_B2)
-
-        self.fake_A0 = self.netG_B(self.real_B0)
-        self.fake_A1 = self.netG_B(self.real_B1)
-
-        if self.opt.netP == 'prediction':
-            self.fake_A2 = self.netP_A(self.fake_A0, self.fake_A1)
-        else:
-            self.fake_A2 = self.netP_A(torch.cat((self.fake_A0, self.fake_A1), 1))
-        self.rec_B = self.netG_A(self.fake_A2)
-
-        if self.opt.netP == 'prediction':
-            self.pred_A2 = self.netP_A(self.real_A0, self.real_A1)
-            self.pred_B2 = self.netP_B(self.real_B0, self.real_B1)
-        else:
-            self.pred_A2 = self.netP_A(torch.cat((self.real_A0, self.real_A1), 1))
-            self.pred_B2 = self.netP_B(torch.cat((self.real_B0, self.real_B1), 1))
-
-
     def backward_D_basic(self, netD, real, fake):
         pred_real = netD(real)
         loss_D_real = self.criterionGAN(pred_real, True)
         pred_fake = netD(fake.detach())
         loss_D_fake = self.criterionGAN(pred_fake, False)
-        loss_D = (loss_D_real + loss_D_fake) * 0.5
+        loss_D = (loss_D_real + loss_D_fake) * 0.5 / self.batch_multiplier
         loss_D.backward()
         return loss_D
 
@@ -131,7 +95,7 @@ class RecycleGANModel(BaseModel):
         loss_D_A3 = self.backward_D_basic(self.netD_A, self.real_B2, pred_B)
 
         self.loss_D_A = loss_D_A0.item() + loss_D_A1.item() + loss_D_A2.item() + loss_D_A3.item()
-    
+
     def backward_D_B(self):
         fake_A0 = self.fake_A_pool.query(self.fake_A0)
         loss_D_B0 = self.backward_D_basic(self.netD_B, self.real_A0, fake_A0)
@@ -143,7 +107,7 @@ class RecycleGANModel(BaseModel):
         loss_D_B3 = self.backward_D_basic(self.netD_B, self.real_A2, pred_A)
 
         self.loss_D_B = loss_D_B0.item() + loss_D_B1.item() + loss_D_B2.item() + loss_D_B3.item()
-    
+
     def backward_G(self):
         lambda_idt = self.opt.lambda_identity
         lambda_A = self.opt.lambda_A
@@ -151,50 +115,28 @@ class RecycleGANModel(BaseModel):
 
         # identity loss は無し？
         if lambda_idt > 0:
-            self.loss_idt_A = 0
-            self.loss_idt_B = 0
+            loss_idt_A = 0
+            loss_idt_B = 0
             # self.idt_A = self.netG_A(self.real_B)
             # self.loss_idt_A = self.criterionIdt(self.idt_A, self.real_B) * lambda_B * lambda_idt
             # self.idt_B = self.netG_B(self.real_A)
             # self.loss_idt_B = self.criterionIdt(self.idt_B, self.real_A) * lambda_A * lambda_idt
         else:
-            self.loss_idt_A = 0
-            self.loss_idt_B = 0
+            loss_idt_A = 0
+            loss_idt_B = 0
 
         # Loss GAN  A -> B
-        self.fake_B0 = self.netG_A(self.real_A0)
         loss_G_A0 = self.criterionGAN(self.netD_A(self.fake_B0), True)
-        self.fake_B1 = self.netG_A(self.real_A1)
         loss_G_A1 = self.criterionGAN(self.netD_A(self.fake_B1), True)
-        
-        if self.opt.netP == 'prediction':
-            self.fake_B2 = self.netP_B(self.fake_B0, self.fake_B1)
-        else:
-            self.fake_B2 = self.netP_B(torch.cat((self.fake_B0, self.fake_B1), 1))
         loss_G_A2 = self.criterionGAN(self.netD_A(self.fake_B2), True)
 
         # Loss GAN  B -> A
-        self.fake_A0 = self.netG_B(self.real_B0)
         loss_G_B0 = self.criterionGAN(self.netD_B(self.fake_A0), True)
-        self.fake_A1 = self.netG_B(self.real_B1)
         loss_G_B1 = self.criterionGAN(self.netD_B(self.fake_A1), True)
-        
-        if self.opt.netP == 'prediction':
-            self.fake_A2 = self.netP_A(self.fake_A0, self.fake_A1)
-        else:
-            self.fake_A2 = self.netP_A(torch.cat((self.fake_A0, self.fake_A1), 1))
         loss_G_B2 = self.criterionGAN(self.netD_B(self.fake_A2), True)
 
         # Loss pred
-        if self.opt.netP == 'prediction':
-            self.pred_A2 = self.netP_A(self.real_A0, self.real_A1)
-        else:
-            self.pred_A2 = self.netP_A(torch.cat((self.real_A0, self.real_A1), 1))
         loss_pred_A = self.criterionCycle(self.pred_A2, self.real_A2) * lambda_A
-        if self.opt.netP == 'prediction':
-            self.pred_B2 = self.netP_B(self.real_B0, self.real_B1)
-        else:
-            self.pred_B2 = self.netP_B(torch.cat((self.real_B0, self.real_B1), 1))
         loss_pred_B = self.criterionCycle(self.pred_B2, self.real_B2) * lambda_B
 
         if self.adversarial_loss_p:
@@ -207,38 +149,62 @@ class RecycleGANModel(BaseModel):
             loss_pred_B_adversarial = 0
 
         # Loss Cycle(Recycle)
-        self.rec_A = self.netG_B(self.fake_B2)
         loss_cycle_A = self.criterionCycle(self.rec_A, self.real_A2) * lambda_A
-
-        self.rec_B = self.netG_A(self.fake_A2)
         loss_cycle_B = self.criterionCycle(self.rec_B, self.real_B2) * lambda_B
 
-        loss_G = (loss_G_A0 + loss_G_A1 + loss_G_A2 + loss_G_B0 + loss_G_B1 + loss_G_B2 + loss_cycle_A + loss_cycle_B
-         + loss_pred_A + loss_pred_B + self.loss_idt_A + self.loss_idt_B + loss_pred_A_adversarial + loss_pred_B_adversarial)
 
+        self.loss_idt_A = loss_idt_A / self.batch_multiplier
+        self.loss_idt_B = loss_idt_B / self.batch_multiplier
+        self.loss_G_A = (loss_G_A0 + loss_G_A1 + loss_G_A2) / self.batch_multiplier
+        self.loss_G_B = (loss_G_B0 + loss_G_B1 + loss_G_B2) / self.batch_multiplier
+        self.loss_cycle_A = loss_cycle_A / self.batch_multiplier
+        self.loss_cycle_B = loss_cycle_B / self.batch_multiplier
+        self.loss_pred_A = loss_pred_A / self.batch_multiplier
+        self.loss_pred_B = loss_pred_B / self.batch_multiplier
+
+        loss_G = (loss_G_A0 + loss_G_A1 + loss_G_A2 + loss_G_B0 + loss_G_B1 + loss_G_B2 + loss_cycle_A + loss_cycle_B
+         + loss_pred_A + loss_pred_B + loss_idt_A + loss_idt_B + loss_pred_A_adversarial + loss_pred_B_adversarial) / self.batch_multiplier
         loss_G.backward()
 
-        # 保存
-        self.loss_G_A = loss_G_A0 + loss_G_A1 + loss_G_A2
-        self.loss_G_B = loss_G_B0 + loss_G_B1 + loss_G_B2
-        self.loss_cycle_A = loss_cycle_A
-        self.loss_cycle_B = loss_cycle_B
-        self.loss_pred_A = loss_pred_A
-        self.loss_pred_B = loss_pred_B
+    def forward(self):
+        self.fake_B0 = self.netG_A(self.real_A0)
+        self.fake_B1 = self.netG_A(self.real_A1)
+        if self.opt.netP == 'prediction':
+            self.fake_B2 = self.netP_B(self.fake_B0, self.fake_B1)
+        else:
+            self.fake_B2 = self.netP_B(torch.cat((self.fake_B0, self.fake_B1), 1))
+        self.rec_A = self.netG_B(self.fake_B2)
+
+        self.fake_A0 = self.netG_B(self.real_B0)
+        self.fake_A1 = self.netG_B(self.real_B1)
+
+        if self.opt.netP == 'prediction':
+            self.fake_A2 = self.netP_A(self.fake_A0, self.fake_A1)
+        else:
+            self.fake_A2 = self.netP_A(torch.cat((self.fake_A0, self.fake_A1), 1))
+        self.rec_B = self.netG_A(self.fake_A2)
+
+        if self.opt.netP == 'prediction':
+            self.pred_A2 = self.netP_A(self.real_A0, self.real_A1)
+            self.pred_B2 = self.netP_B(self.real_B0, self.real_B1)
+        else:
+            self.pred_A2 = self.netP_A(torch.cat((self.real_A0, self.real_A1), 1))
+            self.pred_B2 = self.netP_B(torch.cat((self.real_B0, self.real_B1), 1))
+
+    def backward(self):
+        self.set_requires_grad([self.netD_A, self.netD_B], False)
+        self.backward_G()
+        self.set_requires_grad([self.netD_A, self.netD_B], True)
+        self.backward_D_A()
+        self.backward_D_B()
 
     def optimize(self):
-        self.forward()
-
-        self.set_requires_grad([self.netD_A, self.netD_B], False)
-        self.optimizer_G.zero_grad()
-        self.backward_G()
         self.optimizer_G.step()
-
-        self.set_requires_grad([self.netD_A, self.netD_B], True)
-        self.optimizer_D_A.zero_grad()
-        self.backward_D_A()
         self.optimizer_D_A.step()
-
-        self.optimizer_D_B.zero_grad()
-        self.backward_D_B()
         self.optimizer_D_B.step()
+
+    def zero_grad(self):
+        self.optimizer_G.zero_grad()
+        self.optimizer_D_A.zero_grad()
+        self.optimizer_D_B.zero_grad()
+
