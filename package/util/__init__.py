@@ -28,8 +28,10 @@ def check_dir(path):
 def get_gpu_list():
     if cuda.is_available():
         ret = list(range(cuda.current_device(), cuda.current_device() + cuda.device_count()))
+        print(f'GPU: {cuda.get_device_name()}, count: {cuda.device_count()}')
     else:
         ret = []
+        print('CPU')
     return ret
 
 
