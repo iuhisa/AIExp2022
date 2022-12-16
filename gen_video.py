@@ -55,6 +55,11 @@ if __name__ == '__main__':
         out_img = gen_data
         out_img = ((out_img*0.5 + 0.5)*255).clip(0,255).astype(np.uint8)
 
+        min1 = min(in_img.shape[1], out_img.shape[1])# 入力縦横のサイズ奇数の時、1だけずれることがある。
+        min2 = min(in_img.shape[2], out_img.shape[2])
+        in_img = in_img[:, :min1, :min2]
+        out_img = out_img[:, :min1, :min2]
+
         cat_img = np.concatenate([in_img, out_img], axis=2)
         cat_img = cat_img.transpose(1,2,0)[:,:,[2,1,0]]
         out_video.write(cat_img)

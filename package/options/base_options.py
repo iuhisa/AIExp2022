@@ -62,7 +62,7 @@ class BaseOptions():
         # wandb parameters
         # parser.add_argument('--use_wandb', action='store_true', help='if specified, then init wandb logging')
         # parser.add_argument('--wandb_project_name', type=str, default='CycleGAN-and-pix2pix', help='specify wandb project name')
-        
+        parser.add_argument('--batch_multiplier', type=int, default=1, help='the interval per minibatch to optimize params. see Multiple Minibatch.')
         self.initialized = True
         return parser
 
