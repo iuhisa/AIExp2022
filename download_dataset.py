@@ -53,7 +53,7 @@ random.seed(5555)
 def get_filename(path): 
     return osp.splitext(osp.basename(path))[0]
 
-def make_img_list(dataset_root_dir):
+def make_img_list(dataset_root_dir, train=8, val=1, test=1):
     '''
     Make three text files 'train.txt', 'val.txt' and 'test.txt'.
 
@@ -65,7 +65,7 @@ def make_img_list(dataset_root_dir):
     ---------------------------------------
         dataset_root_dir: path to dataset root. e.g. 'datasets/ukiyoe'
     '''
-    train, val, test = 8, 1, 1
+    # train, val, test = 8, 1, 1
     total = train + val + test
     root_dir = dataset_root_dir
     img_paths = glob(osp.join(root_dir, 'images', '*.jpg'))
@@ -98,7 +98,7 @@ def make_img_list(dataset_root_dir):
 def remove_underscore_and_numbers(filename):
     return os.path.basename(filename).split('_')[0]
 
-def make_vdo_list(dataset_root_dir):
+def make_vdo_list(dataset_root_dir, train=8, val=1, test=1):
     '''
     Make three text files named 'train.txt', 'val.txt' and 'test.txt'.
 
@@ -110,7 +110,7 @@ def make_vdo_list(dataset_root_dir):
     ---------------------------------------
         dataset_root_dir: path to dataset root. e.g. 'datasets/nature_video'
     '''
-    train, val, test = 8, 1, 1
+    # train, val, test = 8, 1, 1
     total = train + val + test
 
     root_dir = dataset_root_dir
