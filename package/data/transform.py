@@ -4,7 +4,8 @@
 import torchvision.transforms as transforms
 from PIL import Image
 
-def get_transform(opt, grayscale=False, convert=True, method=transforms.InterpolationMode.BICUBIC):
+# def get_transform(opt, grayscale=False, convert=True, method=transforms.InterpolationMode.BICUBIC):
+def get_transform(opt, grayscale=False, convert=True, method=Image.BICUBIC): # for ist cluster
     transform_list = []
     if grayscale:
         transform_list.append(transforms.Grayscale(1))
@@ -40,8 +41,9 @@ class FlowerTransform():
     def __call__(self, img):
         return self.data_transform(img)
 
-def __scale_width(img, target_size, crop_size, method=transforms.InterpolationMode.BICUBIC):
-    method = __transforms2pil_resize(method)
+# def __scale_width(img, target_size, crop_size, method=transforms.InterpolationMode.BICUBIC):
+def __scale_width(img, target_size, crop_size, method=Image.BICUBIC): # for ist cluster
+    # method = __transforms2pil_resize(method) # dont use in ist cluster
     ow, oh = img.size
     if ow == target_size and oh >= crop_size:
         return img
@@ -49,6 +51,7 @@ def __scale_width(img, target_size, crop_size, method=transforms.InterpolationMo
     h = int(max(target_size * oh / ow, crop_size))
     return img.resize((w, h), method)
 
+# IST Cluster は torchvision のバージョンが古すぎるのでこの関数がいらない。
 def __transforms2pil_resize(method):
     mapper = {transforms.InterpolationMode.BILINEAR: Image.BILINEAR,
               transforms.InterpolationMode.BICUBIC: Image.BICUBIC,
