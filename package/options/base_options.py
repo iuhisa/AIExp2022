@@ -24,7 +24,7 @@ class BaseOptions():
         parser.add_argument('--A_datatype', type=str, default='isolated', help='type of data. [isolated | sequential]')
         parser.add_argument('--B_datatype', type=str, default='isolated', help='type of data. [isolated | sequential]')
         parser.add_argument('--sequential_len', type=int, default=3, help='length of sequential images to be taken from dataset')
-        parser.add_argument('--name', type=str, default=datetime.datetime.now().strftime('%m-%d_%H-%M-%S'), help='name of the experiment. It decides where to store samples and models')
+        parser.add_argument('--name', type=str, default=datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9))).strftime('%m-%d_%H-%M-%S'), help='name of the experiment. It decides where to store samples and models')
         # parser.add_argument('--gpu_ids', type=str, default='0', help='gpu ids: e.g. 0  0,1,2, 0,2. use -1 for CPU')
         parser.add_argument('--checkpoints_dir', type=str, default='checkpoints', help='checkpoints are saved here')
         parser.add_argument('--save_image_num', type=int, default=5, help='num of images saving per particular epochs')
