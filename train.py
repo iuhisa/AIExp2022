@@ -42,7 +42,7 @@ if __name__ == '__main__':
         if epoch % opt.save_epoch_interval == 0:
             print('saving the model at the end of epoch %d, iters %d' % (epoch, total_iters))
             model.save_networks('latest')
-            # model.save_networks(epoch) ファイルが大きすぎ
+            model.save_networks(epoch) #ファイルが大きすぎ
             visualizer.plot_loss()
 
             # modelにimageを保存させる機能を持たせるのが吉か。
