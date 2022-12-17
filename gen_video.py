@@ -36,8 +36,12 @@ if __name__ == '__main__':
 
     for A_data in tqdm(dataloader):
         if out_video == None:
-            _, _, h, w = A_data.size()
-            out_video = cv2.VideoWriter(osp.join(save_dir,out_filepath), codec, FPS, (2*w, h))
+            if opt.A_datatype == 'isolated':
+                _, _, h, w = A_data.size()
+                out_video = cv2.VideoWriter(osp.join(save_dir,out_filepath), codec, FPS, (2*w, h))
+            elif opt.A_datatype == 'sequential':
+                _, _, _, h, w = A_data.size()
+                out_video = cv2.VideoWriter(osp.join(save_dir,out_filepath), codec, FPS, (2*w, h))
         data = {'A':A_data}
         model.set_input(data)
         if datatype == 'isolated':
