@@ -443,9 +443,9 @@ def create_edge(src_root_dir: str, dst_root_dir: str, thre1: int = 100, thre2: i
     print(f'{dst_root_dir}データセットを作成します')
     check_dir(osp.join(dst_root_dir, 'images'))
 
-    for i, file_path in enumerate(tqdm(os.listdir(osp.join(src_root_dir, 'images')))):
+    for file_path in tqdm(os.listdir(osp.join(src_root_dir, 'images'))):
         image = cv2.resize(cv2.imread(osp.join(src_root_dir, 'images', file_path), cv2.IMREAD_GRAYSCALE), (w, h))
-        cv2.imwrite(osp.join(dst_root_dir, 'images', f'{i}.jpg'), cv2.Canny(image, thre1, thre2))
+        cv2.imwrite(osp.join(dst_root_dir, 'images', file_path), cv2.Canny(image, thre1, thre2))
 
     make_img_list(dst_root_dir)
 
