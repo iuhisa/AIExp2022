@@ -130,10 +130,7 @@ dmypy.json
 
 .DS_Store
 
-datasets/*/images
-datasets/*/train.txt
-datasets/*/test.txt
-datasets/*/val.txt
+datasets/
 
 *.mp4
 *.out
