@@ -47,7 +47,7 @@ if __name__ == '__main__':
 
             # modelにimageを保存させる機能を持たせるのが吉か。
             save_n = opt.save_image_num
-            visualizer.save_images(model, epoch=epoch)
+            visualizer.save_images(model, opt=opt, epoch=epoch)
             # visualizer.save_imgs(model.real_A[:save_n], model.fake_B[:save_n], model.rec_A[:save_n], epoch=epoch, id='AtoB')
             # visualizer.save_imgs(model.real_B[:save_n], model.fake_A[:save_n], model.rec_B[:save_n], epoch=epoch, id='BtoA')
 

@@ -2,20 +2,21 @@
 雑多な関数を定義
 '''
 import glob
-import os.path
+import os.path as osp
 import os
 import torch.cuda as cuda
 import cv2
 import numpy as np
 
-def make_filepath_list(root = 'dataset'):
-    train_dirpath = os.path.join(root, 'train')
-    test_dirpath = os.path.join(root, 'test')
 
-    train_dst_filepath_list = glob.glob(os.path.join(train_dirpath, 'dst', '*.jpg'))
-    train_src_filepath_list = glob.glob(os.path.join(train_dirpath, 'src', '*.jpg'))
-    test_dst_filepath_list = glob.glob(os.path.join(test_dirpath, 'dst', '*.jpg'))
-    test_src_filepath_list = glob.glob(os.path.join(test_dirpath, 'src', '*.jpg'))
+def make_filepath_list(root = 'dataset'):
+    train_dirpath = osp.join(root, 'train')
+    test_dirpath = osp.join(root, 'test')
+
+    train_dst_filepath_list = glob.glob(osp.join(train_dirpath, 'dst', '*.jpg'))
+    train_src_filepath_list = glob.glob(osp.join(train_dirpath, 'src', '*.jpg'))
+    test_dst_filepath_list = glob.glob(osp.join(test_dirpath, 'dst', '*.jpg'))
+    test_src_filepath_list = glob.glob(osp.join(test_dirpath, 'src', '*.jpg'))
     
     return train_dst_filepath_list, train_src_filepath_list, test_dst_filepath_list, test_src_filepath_list
 
@@ -67,3 +68,18 @@ def clip_image(img: np.ndarray, h: int, w: int, type: str = 'center') -> np.ndar
             left = int(w_/2)-int(w/2)
             right = int(w_/2)+int(w/2)
     return img[int(top): int(bottom)+1, int(left): int(right)+1]
+
+def get_stats(opt, domain):
+    if domain == 'A':
+        statsfile_path = osp.join('datasets', opt.A_dataroot, opt.phase+'_stats.txt')
+    elif domain == 'B':
+        statsfile_path = osp.join('datasets', opt.B_dataroot, opt.phase+'_stats.txt')
+
+    if not osp.exists(statsfile_path):
+        print(f'stats file does not exist: {statsfile_path}')
+        return {'mean':(0.5, 0.5, 0.5), 'std':(0.5, 0.5, 0.5)}
+
+    with open(statsfile_path, 'r') as f:
+        line = f.readline()
+        r_mean, r_std, g_mean, g_std, b_mean, b_std = map(float, line.split(','))
+    return {'mean':(r_mean, g_mean, b_mean), 'std':(r_std, g_std, b_std)}

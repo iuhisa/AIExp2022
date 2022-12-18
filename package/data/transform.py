@@ -4,6 +4,7 @@
 import torchvision.transforms as transforms
 from PIL import Image
 import os.path as osp
+from ..util import get_stats
 
 # def get_transform(opt, grayscale=False, convert=True, method=transforms.InterpolationMode.BICUBIC):
 def get_transform(opt, domain, grayscale=False, convert=True, method=Image.BICUBIC): # for ist cluster
@@ -26,19 +27,24 @@ def get_transform(opt, domain, grayscale=False, convert=True, method=Image.BICUB
     
     if convert:
         transform_list.append(transforms.ToTensor())
-        if domain == 'A':
-            statsfile_path = osp.join('datasets', opt.A_dataroot, opt.phase+'_stats.txt')
-        elif domain == 'B':
-            statsfile_path = osp.join('datasets', opt.B_dataroot, opt.phase+'_stats.txt')
         if grayscale:
             transform_list.append(transforms.Normalize((0.5,),(0.5,)))
         else:
-            with open(statsfile_path, 'r') as f:
-                line = f.readline()
-                r_avg, r_std, g_avg, g_std, b_avg, b_std = map(float, line.split(','))
-            transform_list.append(transforms.Normalize((r_avg,g_avg,b_avg),(r_std,g_std,b_std)))
-            
+            s = get_stats(opt, domain)
+            transform_list.append(transforms.Normalize(s['mean'],s['std']))
+
     return transforms.Compose(transform_list)
+
+class InvNormalize:
+    def __init__(self, mean, std):
+        self.invTrans = transforms.Compose(
+        [
+            transforms.Normalize(mean = [ 0., 0., 0. ], std = [1/std[0], 1/std[1], 1/std[2]]),
+            transforms.Normalize(mean = [-mean[0], -mean[1], -mean[2]], std = [ 1., 1., 1. ]),
+        ])
+    def __call__(self, x):
+        return self.invTrans(x)
+
 
 class FlowerTransform():
     def __init__(self, mean, std):
