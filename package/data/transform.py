@@ -3,9 +3,10 @@
 '''
 import torchvision.transforms as transforms
 from PIL import Image
+import os.path as osp
 
 # def get_transform(opt, grayscale=False, convert=True, method=transforms.InterpolationMode.BICUBIC):
-def get_transform(opt, grayscale=False, convert=True, method=Image.BICUBIC): # for ist cluster
+def get_transform(opt, domain, grayscale=False, convert=True, method=Image.BICUBIC): # for ist cluster
     transform_list = []
     if grayscale:
         transform_list.append(transforms.Grayscale(1))
@@ -25,10 +26,17 @@ def get_transform(opt, grayscale=False, convert=True, method=Image.BICUBIC): # f
     
     if convert:
         transform_list.append(transforms.ToTensor())
+        if domain == 'A':
+            statsfile_path = osp.join('datasets', opt.A_dataroot, opt.phase+'_stats.txt')
+        elif domain == 'B':
+            statsfile_path = osp.join('datasets', opt.B_dataroot, opt.phase+'_stats.txt')
         if grayscale:
             transform_list.append(transforms.Normalize((0.5,),(0.5,)))
         else:
-            transform_list.append(transforms.Normalize((0.5,0.5,0.5),(0.5,0.5,0.5)))
+            with open(statsfile_path, 'r') as f:
+                line = f.readline()
+                r_avg, g_avg, b_avg, r_std, g_std, b_std = map(float, line.split(','))
+            transform_list.append(transforms.Normalize((r_avg,g_avg,b_avg),(r_std,g_std,b_std)))
             
     return transforms.Compose(transform_list)
 

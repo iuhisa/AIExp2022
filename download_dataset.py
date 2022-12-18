@@ -19,11 +19,14 @@ pairのあるデータセットだったり、タスクによって構成が変�
 import os
 import os.path as osp
 import cv2
+import math
 import random
 import shutil
 import zipfile
 import argparse
 import requests
+import numpy as np
+from PIL import Image
 from tqdm import tqdm
 from glob import glob
 from package.util import check_dir, clip_image
@@ -391,6 +394,47 @@ def create_hiroshige_video():
             cv2.imwrite(osp.join(dir_path_hiroshige_video,  f'{i}_{str(j).zfill(digit_length)}.jpg'), cv2.resize(clip_image(image_,400,400), dsize=(256, 256)))
 
     make_vdo_list(osp.join('datasets', 'hiroshige_video'))
+
+def make_statistic(dataset_root_dir:str, phase:str = 'train'):
+    '''
+    dataset_root_dir: e.g. 'datasets/ukiyoe'
+    '''
+    assert(phase in ['train', 'val', 'test'])
+    txtfile_path = osp.join(dataset_root_dir, phase+'.txt')
+    assert(osp.exists(txtfile_path))
+
+    template_path = osp.join(dataset_root_dir, 'images', '%s.jpg')
+    r_avgs, g_avgs, b_avgs = [], [], []
+    r2_avgs, g2_avgs, b2_avgs = [], [], []
+    print('calculate average in each channels')
+    for line in tqdm(open(txtfile_path)):
+        file_id = line.strip()
+        img_path = template_path % file_id
+        img = np.array(Image.open(img_path).convert('RGB'), dtype=np.float32)/255.0
+        r_pixs = img[:,:,0].flatten()
+        g_pixs = img[:,:,1].flatten()
+        b_pixs = img[:,:,2].flatten()
+        r_avgs.append(np.average(r_pixs))
+        g_avgs.append(np.average(g_pixs))
+        b_avgs.append(np.average(b_pixs))
+        r2_avgs.append(np.average(r_pixs**2))
+        g2_avgs.append(np.average(g_pixs**2))
+        b2_avgs.append(np.average(b_pixs**2))
+
+    r_avg = np.average(r_avgs)
+    g_avg = np.average(g_avgs)
+    b_avg = np.average(b_avgs)
+    r2_avg = np.average(r2_avgs)
+    g2_avg = np.average(g2_avgs)
+    b2_avg = np.average(b2_avgs)
+
+    r_std = math.sqrt(r2_avg - r_avg**2)
+    g_std = math.sqrt(g2_avg - g_avg**2)
+    b_std = math.sqrt(b2_avg - b_avg**2)
+
+    statsfile_name = osp.join(dataset_root_dir, phase + '_stats.txt')
+    with open(statsfile_name, 'w') as f:
+        f.write(f'{r_avg},{r_std},{g_avg},{g_std},{b_avg},{b_std}')
 
 def main():
     parser = argparse.ArgumentParser(description='データセットのダウンロード')

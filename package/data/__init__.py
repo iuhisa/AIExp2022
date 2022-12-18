@@ -58,7 +58,7 @@ def get_dataloader(opt, domain='A'):
 
     paths = dataset.get_filepath_list(dataroot, opt.phase, list_len_max=opt.max_dataset_size)
     
-    trans = transform.get_transform(opt)
+    trans = transform.get_transform(opt, domain=domain)
 
     if datatype == 'isolated':
         _dataset = dataset.SingleDataset(paths, trans)
