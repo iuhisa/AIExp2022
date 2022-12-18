@@ -74,6 +74,7 @@ def get_stats(opt, domain):
         statsfile_path = osp.join('datasets', opt.A_dataroot, opt.phase+'_stats.txt')
     elif domain == 'B':
         statsfile_path = osp.join('datasets', opt.B_dataroot, opt.phase+'_stats.txt')
+    return {'mean': (0.5, 0.5, 0.5), 'std': (0.5, 0.5, 0.5)} # databaseに特化した正規化はしない
 
     if not osp.exists(statsfile_path):
         print(f'stats file does not exist: {statsfile_path}')
