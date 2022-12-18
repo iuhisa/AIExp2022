@@ -35,7 +35,7 @@ def get_transform(opt, domain, grayscale=False, convert=True, method=Image.BICUB
         else:
             with open(statsfile_path, 'r') as f:
                 line = f.readline()
-                r_avg, g_avg, b_avg, r_std, g_std, b_std = map(float, line.split(','))
+                r_avg, r_std, g_avg, g_std, b_avg, b_std = map(float, line.split(','))
             transform_list.append(transforms.Normalize((r_avg,g_avg,b_avg),(r_std,g_std,b_std)))
             
     return transforms.Compose(transform_list)
