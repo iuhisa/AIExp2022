@@ -50,7 +50,8 @@ class TestRecycleGANModel(BaseModel):
         else:
             fake_B2 = self.netP_B(torch.cat((fake_B0, fake_B1), 1))
         
-        self.fake_B = (self.netG_A(self.real_A2) + fake_B2) * 0.5
+        # self.fake_B = (self.netG_A(self.real_A2) + fake_B2) * 0.5 # use pred
+        self.fake_B = self.netG_A(self.real_A2) # only generator
 
     def get_fake(self):
         return self.fake_B

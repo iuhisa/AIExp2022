@@ -9,6 +9,7 @@ from .cycle_gan_model import CycleGANModel
 from .recycle_gan_model import RecycleGANModel
 from .test_cycle_gan_model import TestCycleGANModel
 from .test_recycle_gan_model import TestRecycleGANModel
+from .pix2pix_model import Pix2PixModel
 from .base_model import BaseModel
 
 
@@ -21,6 +22,8 @@ def get_model(opt):
         model = TestCycleGANModel(opt)
     elif opt.model == 'test_recycle_gan':
         model = TestRecycleGANModel(opt)
+    elif opt.model == 'pix2pix':
+        model = Pix2PixModel(opt)
 
     # else model_name == 'CycleGAN':
     # ...
