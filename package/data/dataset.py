@@ -62,13 +62,13 @@ class SequentialDataset(Dataset):
 class AlignedDataset(Dataset):
     def __init__(self, opt):
         super(AlignedDataset, self).__init__()
-        
+        self.opt = opt
         A_path_list = get_filepath_list(opt.A_dataroot, opt.phase, list_len_max=opt.max_dataset_size)
         self.A_paths = A_path_list
         B_path_list = get_filepath_list(opt.B_dataroot, opt.phase, list_len_max=opt.max_dataset_size)
         self.B_paths = B_path_list
-        self.A_transform = transform.get_transform(opt, domain='A', grayscale=(opt.input_nc == 1))
-        self.B_transform = transform.get_transform(opt, domain='B', grayscale=(opt.output_nc == 1))
+        # self.A_transform = transform.get_transform(opt, domain='A', grayscale=(opt.input_nc == 1))
+        # self.B_transform = transform.get_transform(opt, domain='B', grayscale=(opt.output_nc == 1))
         assert(len(self.A_paths) == len(self.B_paths))
 
     def __len__(self):
@@ -79,6 +79,9 @@ class AlignedDataset(Dataset):
         B_path = self.B_paths[index]
         A_img = Image.open(A_path).convert('RGB')
         B_img = Image.open(B_path).convert('RGB')
-        A_img = self.A_transform(A_img)
-        B_img = self.B_transform(B_img)
+        transform_params = transform.get_params(self.opt, A_img.size)
+        A_transform = transform.get_transform(opt=self.opt, params=transform_params, domain='A')
+        B_transform = transform.get_transform(opt=self.opt, params=transform_params, domain='B')
+        A_img = A_transform(A_img)
+        B_img = B_transform(B_img)
         return {'A': A_img, 'B': B_img}

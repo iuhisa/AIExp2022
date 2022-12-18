@@ -95,3 +95,5 @@ class Pix2PixModel(BaseModel):
         pass
     def backward():
         pass
+    def optimize():
+        pass

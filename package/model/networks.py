@@ -90,11 +90,16 @@ def define_G(input_nc, output_nc, ngf, netG, norm='batch', use_dropout=False, in
 
     return init_net(net, init_type=init_type, init_gain=init_gain, gpu_ids=gpu_ids)
 
-def define_D(input_nc, ndf, n_layers_D=3, norm='batch', init_type='normal', init_gain=0.02, gpu_ids=[]):
+def define_D(input_nc, ndf, netD, n_layers_D=3, norm='batch', init_type='normal', init_gain=0.02, gpu_ids=[]):
     net = None
     norm_layer = get_norm_layer(norm)
 
-    net = NLayerDiscriminator(input_nc, ndf, n_layers=n_layers_D, norm_layer=norm_layer)
+    if netD == 'basic':
+        net = NLayerDiscriminator(input_nc, ndf, n_layers=3, norm_layer=norm_layer)
+    elif netD == 'n_layers':
+        net = NLayerDiscriminator(input_nc, ndf, n_layers=n_layers_D, norm_layer=norm_layer)
+    elif netD == 'pixel':
+        net = PixelDiscriminator(input_nc, ndf, norm_layer=norm_layer)
 
     return init_net(net, init_type=init_type, init_gain=init_gain, gpu_ids=gpu_ids)
 
@@ -337,3 +342,21 @@ class NLayerDiscriminator(nn.Module):
     
     def forward(self, input):
         return self.model(input)
+
+class PixelDiscriminator(nn.Module):
+    def __init__(self, input_nc, ndf=64, norm_layer=nn.BatchNorm2d):
+        super(PixelDiscriminator, self).__init__()
+        use_bias = (norm_layer == nn.InstanceNorm2d)
+
+        self.net = [
+            nn.Conv2d(input_nc, ndf, kernel_size=1, stride=1, padding=0),
+            nn.LeakyReLU(0.2, True),
+            nn.Conv2d(ndf, ndf * 2, kernel_size=1, stride=1, padding=0, bias=use_bias),
+            norm_layer(ndf * 2),
+            nn.LeakyReLU(0.2, True),
+            nn.Conv2d(ndf * 2, 1, kernel_size=1, stride=1, padding=0, bias=use_bias)
+        ]
+        self.net = nn.Sequential(*self.net)
+
+    def forward(self, input):
+        return self.net(input)
