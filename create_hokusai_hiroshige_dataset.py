@@ -8,7 +8,6 @@ import numpy as np
 NUM_FILTER = 100
 
 def main():
-    
     if not osp.exists(osp.join('datasets', 'ukiyoe_high_resolution')):
         print('ukiyoe_high_resolutionデータセットがありません。\n先にhttps://www.kaggle.com/datasets/kengoichiki/the-metropolitan-museum-of-art-ukiyoe-dataset?resource=downloadよりデータをダウンロードして解凍して下さい。\nukiyoe_high_resolution/archiveとなる様にして下さい。')
         return
