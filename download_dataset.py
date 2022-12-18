@@ -44,7 +44,10 @@ DATASETS = {
     'nature_video': {'desc': '素材サイトのPexelsから、natureに該当する動画を連番画像で出力します'},
     'beautiful-scenery_video': {'desc': '素材サイトのPexelsから、beautiful-sceneryに該当する動画を連番画像で出力します'},
     'ukiyoe_video': {'desc': 'ukiyoeデータセットが必要です。インターネット接続は不要です'},
-    'hiroshige_video': {'desc': 'utagawa_hiroshigeデータセットが必要です。インターネット接続は不要です'}
+    'katsushika_hokusai': {'desc': 'create_hokusai_hiroshige_dataset.pyで作成、もしくはgoogle driveからダウンロードしてください'},
+    'utagawa_hiroshige': {'desc': 'create_hokusai_hiroshige_dataset.pyで作成、もしくはgoogle driveからダウンロードしてください'},
+    'hiroshige_video': {'desc': 'utagawa_hiroshigeデータセットが必要です。インターネット接続は不要です'},
+    'hiroshige_edge': {'desc': 'utagawa_hiroshigeデータセットが必要です。インターネット接続は不要です'}
 }
 
 PEXELS_API = '563492ad6f91700001000001c85472c49d3a4c189a1ed7baa64e4ae5'
@@ -355,7 +358,6 @@ def download_nature_video():
 
     make_vdo_list(osp.join('datasets', 'nature_video'))
 
-
 def create_ukiyoe_video():
     if not osp.exists(osp.join('datasets', 'ukiyoe')):
         print('ukiyoeデータセットがありません。先にukiyoeデータセットをダウンロードしてください。')
@@ -375,7 +377,6 @@ def create_ukiyoe_video():
     make_vdo_list(osp.join('datasets', 'ukiyoe_video'))
 
     return
-
 
 def create_hiroshige_video():
     if not osp.exists(osp.join('datasets', 'utagawa_hiroshige')):
@@ -436,6 +437,19 @@ def make_statistic(dataset_root_dir:str, phase:str = 'train'):
     with open(statsfile_name, 'w') as f:
         f.write(f'{r_avg},{r_std},{g_avg},{g_std},{b_avg},{b_std}')
 
+def create_edge(src_root_dir: str, dst_root_dir: str, thre1: int = 100, thre2: int = 200, w: int = 256, h: int =256):
+    if not osp.exists(src_root_dir):
+        print(f'{src_root_dir}がありません。先に作成してください')
+    print(f'{dst_root_dir}データセットを作成します')
+    check_dir(osp.join(dst_root_dir, 'images'))
+
+    for i, file_path in enumerate(tqdm(os.listdir(osp.join(src_root_dir, 'images')))):
+        image = cv2.resize(cv2.imread(osp.join(src_root_dir, 'images', file_path), cv2.IMREAD_GRAYSCALE), (w, h))
+        cv2.imwrite(osp.join(dst_root_dir, 'images', f'{i}.jpg'), cv2.Canny(image, thre1, thre2))
+
+    make_img_list(dst_root_dir)
+
+
 def main():
     parser = argparse.ArgumentParser(description='データセットのダウンロード')
     parser.add_argument('-l', '--list', help='ダウンロードできるデータセットの一覧', action='store_true')
@@ -468,6 +482,8 @@ def main():
             create_ukiyoe_video()
         if 'hiroshige_video' in args.datasets:
             create_hiroshige_video()
+        if 'hiroshige_edge' in args.datasets:
+            create_edge(osp.join('datasets', 'utagawa_hiroshige'), osp.join('datasets', 'hiroshige_edge'), 100, 300)
 
 if __name__ == "__main__":
     main()
