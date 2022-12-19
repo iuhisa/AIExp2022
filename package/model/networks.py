@@ -259,7 +259,7 @@ class ResnetBlock(nn.Module):
 
 class ResnetBlockMax(nn.Module):
     def __init__(self, dim, norm_layer, use_bias, use_dropout, padding_type='zero'):
-        super(ResnetBlock, self).__init__()
+        super(ResnetBlockMax, self).__init__()
         conv_block = []
         p = 0
         if padding_type == 'zero':
