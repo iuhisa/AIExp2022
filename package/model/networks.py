@@ -450,7 +450,7 @@ class NLayerDiscriminatorMax(nn.Module):
             norm_layer(ndf * nf_mult),
             nn.LeakyReLU(0.2, True)
         ]
-        # model += [Self_Attention(ndf * nf_mult)]
+        model += [Self_Attention(ndf * nf_mult)]
 
         model += [nn.Conv2d(ndf * nf_mult, 1, kernel_size=4, stride=1, padding=1)]
         self.model = nn.Sequential(*model)
