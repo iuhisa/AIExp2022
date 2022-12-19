@@ -42,6 +42,21 @@ class SingleDataset(Dataset):
         img = self.transform(img)
         return img
 
+class SinglePathDataset(Dataset):
+    def __init__(self, dataset_path_list, transform):
+        super(SinglePathDataset, self).__init__()
+        self.paths = dataset_path_list
+        self.transform = transform
+
+    def __len__(self):
+        return len(self.paths)
+
+    def __getitem__(self, index):
+        path = self.paths[index]
+        img = Image.open(path).convert('RGB')
+        img = self.transform(img)
+        return {'img':img, 'path':path}
+
 class SequentialDataset(Dataset):
     def __init__(self, dataset_path_list, transform, n=3):
         super(SequentialDataset, self).__init__()

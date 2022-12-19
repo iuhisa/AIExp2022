@@ -97,3 +97,6 @@ class Pix2PixModel(BaseModel):
         pass
     def optimize():
         pass
+
+    def get_fake(self):
+        return self.fake_B

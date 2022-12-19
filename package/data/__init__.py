@@ -43,6 +43,8 @@ def get_dataloader(opt, domain='A'):
 
     if datatype == 'isolated':
         _dataset = dataset.SingleDataset(paths, trans)
+    elif datatype == 'isolated_w_path':
+        _dataset = dataset.SinglePathDataset(paths, trans)
     elif datatype == 'sequential':
         _dataset = dataset.SequentialDataset(paths, trans, n=opt.sequential_len)
     elif datatype == 'aligned':
