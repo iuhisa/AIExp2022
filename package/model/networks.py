@@ -203,7 +203,7 @@ class ResnetGeneratorMax(nn.Module):
                 norm_layer(ngf * mult * 2),
                 nn.ReLU(True)
             ]
-        model += [Self_Attention(ngf * mult)]
+        model += [Self_Attention(ngf * mult * 2)]
         mult = 2 ** n_downsampling
         for i in range(n_blocks):
             model += [ResnetBlockMax(ngf * mult, norm_layer=norm_layer, use_dropout=use_dropout, use_bias=use_bias)]
