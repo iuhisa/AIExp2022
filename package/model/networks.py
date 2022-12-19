@@ -219,7 +219,7 @@ class ResnetGeneratorMax(nn.Module):
         model += [Self_Attention(ngf)]
         model += [
             nn.ReflectionPad2d(3),
-            nn.utils.spectral_norm(nn.Conv2d(ngf, output_nc, kernel_size=7, padding=0)),
+            nn.Conv2d(ngf, output_nc, kernel_size=7, padding=0),
             nn.Tanh()
         ]
         self.model = nn.Sequential(*model)
@@ -452,7 +452,7 @@ class NLayerDiscriminatorMax(nn.Module):
         ]
         model += [Self_Attention(ndf * nf_mult)]
 
-        model += [nn.utils.spectral_norm(nn.Conv2d(ndf * nf_mult, 1, kernel_size=4, stride=1, padding=1))]
+        model += [nn.Conv2d(ndf * nf_mult, 1, kernel_size=4, stride=1, padding=1)]
         self.model = nn.Sequential(*model)
     
     def forward(self, input):
