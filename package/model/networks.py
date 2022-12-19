@@ -81,6 +81,8 @@ def define_G(input_nc, output_nc, ngf, netG, norm='batch', use_dropout=False, in
         net = ResnetGenerator(input_nc=input_nc, output_nc=output_nc, ngf=ngf, norm_layer=norm_layer, use_dropout=use_dropout, n_blocks=6)
     elif netG == 'resnet_9blocks':
         net = ResnetGenerator(input_nc=input_nc, output_nc=output_nc, ngf=ngf, norm_layer=norm_layer, use_dropout=use_dropout, n_blocks=9)
+    elif netG == 'resnet_max':
+        net = ResnetGeneratorMax(input_nc=input_nc, output_nc=output_nc, ngf=ngf, norm_layer=norm_layer, use_dropout=use_dropout, n_blocks=9)
     elif netG == 'unet_128':
         net = UnetGenerator(input_nc, output_nc, 7, ngf, norm_layer=norm_layer, use_dropout=use_dropout)
     elif netG == 'unet_256':
@@ -98,6 +100,8 @@ def define_D(input_nc, ndf, netD, n_layers_D=3, norm='batch', init_type='normal'
         net = NLayerDiscriminator(input_nc, ndf, n_layers=3, norm_layer=norm_layer)
     elif netD == 'n_layers':
         net = NLayerDiscriminator(input_nc, ndf, n_layers=n_layers_D, norm_layer=norm_layer)
+    elif netD == 'max':
+        net = NLayerDiscriminatorMax(input_nc, ndf, n_layers=n_layers_D, norm_layer=norm_layer)
     elif netD == 'pixel':
         net = PixelDiscriminator(input_nc, ndf, norm_layer=norm_layer)
 
@@ -179,6 +183,50 @@ class ResnetGenerator(nn.Module):
     def forward(self, input):
         return self.model(input)
 
+class ResnetGeneratorMax(nn.Module):
+    def __init__(self, input_nc, output_nc, ngf=64, norm_layer=nn.BatchNorm2d, use_dropout=False, n_blocks=6):
+        super(ResnetGeneratorMax, self).__init__()
+
+        use_bias = (norm_layer == nn.InstanceNorm2d)
+        model = [
+            nn.ReflectionPad2d(3),
+            nn.utils.spectral_norm(nn.Conv2d(input_nc, ngf, kernel_size=7, padding=0, bias=use_bias)),
+            norm_layer(ngf),
+            nn.ReLU(True)
+        ]
+
+        n_downsampling = 2
+        for i in range(n_downsampling):
+            mult = 2 ** i
+            model += [
+                nn.utils.spectral_norm(nn.Conv2d(ngf * mult, ngf * mult * 2, kernel_size=3, stride=2, padding=1, bias=use_bias)),
+                norm_layer(ngf * mult * 2),
+                nn.ReLU(True)
+            ]
+    
+        mult = 2 ** n_downsampling
+        for i in range(n_blocks):
+            model += [ResnetBlockMax(ngf * mult, norm_layer=norm_layer, use_dropout=use_dropout, use_bias=use_bias)]
+        
+        for i in range(n_downsampling):
+            mult = 2 ** (n_downsampling - i)
+            model += [
+                nn.utils.spectral_norm(nn.ConvTranspose2d(ngf * mult, int(ngf * mult / 2), kernel_size=3, stride=2, padding=1, output_padding=1, bias=use_bias)),
+                norm_layer(int(ngf * mult / 2)),
+                nn.ReLU(True)
+            ]
+        
+        model += [Self_Attention(ngf)]
+        model += [
+            nn.ReflectionPad2d(3),
+            nn.utils.spectral_norm(nn.Conv2d(ngf, output_nc, kernel_size=7, padding=0)),
+            nn.Tanh()
+        ]
+        self.model = nn.Sequential(*model)
+
+    def forward(self, input):
+        return self.model(input)
+
 class ResnetBlock(nn.Module):
     def __init__(self, dim, norm_layer, use_bias, use_dropout, padding_type='zero'):
         super(ResnetBlock, self).__init__()
@@ -201,6 +249,37 @@ class ResnetBlock(nn.Module):
     
         conv_block += [
             nn.Conv2d(dim, dim, kernel_size=3, padding=p, bias=use_bias),
+            norm_layer(dim)
+        ]
+        self.conv_block = nn.Sequential(*conv_block)
+
+    def forward(self, x):
+        out = x + self.conv_block(x)
+        return out
+
+class ResnetBlockMax(nn.Module):
+    def __init__(self, dim, norm_layer, use_bias, use_dropout, padding_type='zero'):
+        super(ResnetBlock, self).__init__()
+        conv_block = []
+        p = 0
+        if padding_type == 'zero':
+            p = 1
+        
+        conv_block += [
+            nn.utils.spectral_norm(nn.Conv2d(dim, dim, kernel_size=3, padding=p, bias=use_bias)),
+            norm_layer(dim),
+            nn.ReLU(True)
+        ]
+        if use_dropout:
+            conv_block += [nn.Dropout(0.5)]
+        
+        p = 0
+        if padding_type == 'zero':
+            p = 1
+        
+        conv_block += [Self_Attention(dim)]
+        conv_block += [
+            nn.utils.spectral_norm(nn.Conv2d(dim, dim, kernel_size=3, padding=p, bias=use_bias)),
             norm_layer(dim)
         ]
         self.conv_block = nn.Sequential(*conv_block)
@@ -343,6 +422,42 @@ class NLayerDiscriminator(nn.Module):
     def forward(self, input):
         return self.model(input)
 
+class NLayerDiscriminatorMax(nn.Module):
+    def __init__(self, input_nc, ndf=64, n_layers=3, norm_layer=nn.BatchNorm2d):
+        super(NLayerDiscriminatorMax, self).__init__()
+
+        use_bias = (norm_layer == nn.InstanceNorm2d)
+        model = [
+            nn.utils.spectral_norm(nn.Conv2d(input_nc, ndf, kernel_size=4, stride=2, padding=1)),
+            nn.LeakyReLU(0.2, True)
+        ]
+        nf_mult = 1
+        nf_mult_prev = 1
+        for n in range(1, n_layers):
+            nf_mult_prev = nf_mult
+            nf_mult = min(2 ** n, 88)
+            model += [
+                nn.utils.spectral_norm(nn.Conv2d(ndf * nf_mult_prev, ndf * nf_mult, kernel_size=4, stride=2, padding=1, bias=use_bias)),
+                norm_layer(ndf * nf_mult),
+                nn.LeakyReLU(0.2, True)
+            ]
+
+        nf_mult_prev = nf_mult
+        model += [Self_Attention(ndf * nf_mult_prev)]
+        nf_mult = min(2 ** n_layers, 8)
+        model += [
+            nn.utils.spectral_norm(nn.Conv2d(ndf * nf_mult_prev, ndf * nf_mult, kernel_size=4, stride=1, padding=1, bias=use_bias)),
+            norm_layer(ndf * nf_mult),
+            nn.LeakyReLU(0.2, True)
+        ]
+        model += [Self_Attention(ndf * nf_mult)]
+
+        model += [nn.utils.spectral_norm(nn.Conv2d(ndf * nf_mult, 1, kernel_size=4, stride=1, padding=1))]
+        self.model = nn.Sequential(*model)
+    
+    def forward(self, input):
+        return self.model(input)
+
 class PixelDiscriminator(nn.Module):
     def __init__(self, input_nc, ndf=64, norm_layer=nn.BatchNorm2d):
         super(PixelDiscriminator, self).__init__()
@@ -360,3 +475,35 @@ class PixelDiscriminator(nn.Module):
 
     def forward(self, input):
         return self.net(input)
+
+class Self_Attention(nn.Module):
+    def __init__(self, in_dim):
+        super(Self_Attention, self).__init__()
+
+        self.query_conv = nn.Conv2d(in_channels=in_dim, out_channels=in_dim//8, kernel_size=1)
+        self.key_conv = nn.Conv2d(in_channels=in_dim, out_channels=in_dim//8, kernel_size=1)
+        self.value_conv = nn.Conv2d(in_channels=in_dim, out_channels=in_dim, kernel_size=1)
+
+        self.softmax = nn.Softmax(dim=-2)
+
+        self.gamma = nn.Parameter(torch.zeros(1))
+
+    def forward(self, x):
+        X = x
+        proj_query = self.query_conv(X).view(X.shape[0], -1, X.shape[2]*X.shape[3])
+        proj_query = proj_query.permute(0, 2, 1)
+        proj_key = self.key_conv(X).view(X.shape[0], -1, X.shape[2]*X.shape[3])
+
+        S = torch.bmm(proj_query, proj_key)
+
+        attention_map_T = self.softmax(S)
+        attention_map = attention_map_T.permute(0, 2, 1)
+
+        proj_value = self.value_conv(X).view(X.shape[0], -1, X.shape[2]*X.shape[3])
+        o = torch.bmm(proj_value, attention_map.permute(0, 2, 1))
+
+        o = o.view(X.shape[0], X.shape[1], X.shape[2], X.shape[3])
+        out = x + self.gamma*o
+
+        return out
+        # return out, attention_map
