@@ -33,7 +33,7 @@ if __name__ == '__main__':
 
         fig = plt.figure(figsize=(10,10))
         # print(imgs[0].shape)
-        disp_img = np.concatenate(imgs, axis=0)
+        # disp_img = np.concatenate(imgs, axis=0)
         # print(disp_img.shape)
         # plt.imshow(Image.fromarray(disp_img.transpose(1,2,0)))
         ax = plt.gca()
