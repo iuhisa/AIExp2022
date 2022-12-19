@@ -277,7 +277,7 @@ class ResnetBlockMax(nn.Module):
         if padding_type == 'zero':
             p = 1
         
-        # conv_block += [Self_Attention(dim)]
+        conv_block += [Self_Attention(dim)]
         conv_block += [
             nn.Conv2d(dim, dim, kernel_size=3, padding=p, bias=use_bias),
             norm_layer(dim)
