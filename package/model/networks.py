@@ -190,7 +190,7 @@ class ResnetGeneratorMax(nn.Module):
         use_bias = (norm_layer == nn.InstanceNorm2d)
         model = [
             nn.ReflectionPad2d(3),
-            nn.Conv2d(input_nc, ngf, kernel_size=7, padding=0, bias=use_bias),
+            nn.utils.spectral_norm(nn.Conv2d(input_nc, ngf, kernel_size=7, padding=0, bias=use_bias)),
             norm_layer(ngf),
             nn.ReLU(True)
         ]
@@ -199,11 +199,11 @@ class ResnetGeneratorMax(nn.Module):
         for i in range(n_downsampling):
             mult = 2 ** i
             model += [
-                nn.Conv2d(ngf * mult, ngf * mult * 2, kernel_size=3, stride=2, padding=1, bias=use_bias),
+                nn.utils.spectral_norm(nn.Conv2d(ngf * mult, ngf * mult * 2, kernel_size=3, stride=2, padding=1, bias=use_bias)),
                 norm_layer(ngf * mult * 2),
                 nn.ReLU(True)
             ]
-    
+        model += [Self_Attention(ngf * mult)]
         mult = 2 ** n_downsampling
         for i in range(n_blocks):
             model += [ResnetBlockMax(ngf * mult, norm_layer=norm_layer, use_dropout=use_dropout, use_bias=use_bias)]
@@ -212,14 +212,14 @@ class ResnetGeneratorMax(nn.Module):
         for i in range(n_downsampling):
             mult = 2 ** (n_downsampling - i)
             model += [
-                nn.ConvTranspose2d(ngf * mult, int(ngf * mult / 2), kernel_size=3, stride=2, padding=1, output_padding=1, bias=use_bias),
+                nn.utils.spectral_norm(nn.ConvTranspose2d(ngf * mult, int(ngf * mult / 2), kernel_size=3, stride=2, padding=1, output_padding=1, bias=use_bias)),
                 norm_layer(int(ngf * mult / 2)),
                 nn.ReLU(True)
             ]
         
         model += [
             nn.ReflectionPad2d(3),
-            nn.Conv2d(ngf, output_nc, kernel_size=7, padding=0),
+            nn.utils.spectral_norm(nn.Conv2d(ngf, output_nc, kernel_size=7, padding=0)),
             nn.Tanh()
         ]
         self.model = nn.Sequential(*model)
@@ -266,7 +266,7 @@ class ResnetBlockMax(nn.Module):
             p = 1
         
         conv_block += [
-            nn.Conv2d(dim, dim, kernel_size=3, padding=p, bias=use_bias),
+            nn.utils.spectral_norm(nn.Conv2d(dim, dim, kernel_size=3, padding=p, bias=use_bias)),
             norm_layer(dim),
             nn.ReLU(True)
         ]
@@ -279,7 +279,7 @@ class ResnetBlockMax(nn.Module):
         
         conv_block += [Self_Attention(dim)]
         conv_block += [
-            nn.Conv2d(dim, dim, kernel_size=3, padding=p, bias=use_bias),
+            nn.utils.spectral_norm(nn.Conv2d(dim, dim, kernel_size=3, padding=p, bias=use_bias)),
             norm_layer(dim)
         ]
         self.conv_block = nn.Sequential(*conv_block)
@@ -428,7 +428,7 @@ class NLayerDiscriminatorMax(nn.Module):
 
         use_bias = (norm_layer == nn.InstanceNorm2d)
         model = [
-            nn.Conv2d(input_nc, ndf, kernel_size=4, stride=2, padding=1),
+            nn.utils.spectral_norm(nn.Conv2d(input_nc, ndf, kernel_size=4, stride=2, padding=1)),
             nn.LeakyReLU(0.2, True)
         ]
         nf_mult = 1
@@ -437,7 +437,7 @@ class NLayerDiscriminatorMax(nn.Module):
             nf_mult_prev = nf_mult
             nf_mult = min(2 ** n, 88)
             model += [
-                nn.Conv2d(ndf * nf_mult_prev, ndf * nf_mult, kernel_size=4, stride=2, padding=1, bias=use_bias),
+                nn.utils.spectral_norm(nn.Conv2d(ndf * nf_mult_prev, ndf * nf_mult, kernel_size=4, stride=2, padding=1, bias=use_bias)),
                 norm_layer(ndf * nf_mult),
                 nn.LeakyReLU(0.2, True)
             ]
@@ -446,13 +446,13 @@ class NLayerDiscriminatorMax(nn.Module):
         model += [Self_Attention(ndf * nf_mult_prev)]
         nf_mult = min(2 ** n_layers, 8)
         model += [
-            nn.Conv2d(ndf * nf_mult_prev, ndf * nf_mult, kernel_size=4, stride=1, padding=1, bias=use_bias),
+            nn.utils.spectral_norm(nn.Conv2d(ndf * nf_mult_prev, ndf * nf_mult, kernel_size=4, stride=1, padding=1, bias=use_bias)),
             norm_layer(ndf * nf_mult),
             nn.LeakyReLU(0.2, True)
         ]
         model += [Self_Attention(ndf * nf_mult)]
 
-        model += [nn.Conv2d(ndf * nf_mult, 1, kernel_size=4, stride=1, padding=1)]
+        model += [nn.utils.spectral_norm(nn.Conv2d(ndf * nf_mult, 1, kernel_size=4, stride=1, padding=1))]
         self.model = nn.Sequential(*model)
     
     def forward(self, input):
