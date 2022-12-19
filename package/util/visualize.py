@@ -82,6 +82,7 @@ class Visualizer():
                 fig.savefig(osp.join(self.save_dir, '{}_{}_images.jpg'.format(epoch, f'BtoA_{i}')))
 
         elif isinstance(model, Pix2PixModel):
+            save_n = self.opt.save_image_num
             visuals = model.get_current_visuals()
             fig = self.make_fig(torch.stack([visuals['real_A'][:save_n], visuals['fake_B'][:save_n], visuals['real_B'][:save_n]]))
             fig.savefig(osp.join(self.save_dir, '{}_{}_images.jpg'.format(epoch, 'AtoB')))
