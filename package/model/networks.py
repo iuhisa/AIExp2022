@@ -208,6 +208,7 @@ class ResnetGeneratorMax(nn.Module):
         for i in range(n_blocks):
             model += [ResnetBlockMax(ngf * mult, norm_layer=norm_layer, use_dropout=use_dropout, use_bias=use_bias)]
         
+        model += [Self_Attention(ngf * mult)]
         for i in range(n_downsampling):
             mult = 2 ** (n_downsampling - i)
             model += [
@@ -216,7 +217,6 @@ class ResnetGeneratorMax(nn.Module):
                 nn.ReLU(True)
             ]
         
-        model += [Self_Attention(ngf)]
         model += [
             nn.ReflectionPad2d(3),
             nn.Conv2d(ngf, output_nc, kernel_size=7, padding=0),
