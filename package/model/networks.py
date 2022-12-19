@@ -216,7 +216,7 @@ class ResnetGeneratorMax(nn.Module):
                 nn.ReLU(True)
             ]
         
-        model += [Self_Attention(ngf)]
+        # model += [Self_Attention(ngf)]
         model += [
             nn.ReflectionPad2d(3),
             nn.Conv2d(ngf, output_nc, kernel_size=7, padding=0),
